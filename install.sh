@@ -205,28 +205,21 @@ fetch_stdout() {
 
 # ── GitHub release helpers ───────────────────────────────────────────────────
 latest_version() {
-  local url="https://api.github.com/repos/${REPO}/releases/latest"
-  local body
-  # GitHub requires a User-Agent header; without it the API returns 403.
+  # Use the HTML releases/latest redirect — no API key, not rate-limited.
+  # GitHub redirects to the canonical release URL whose path contains the tag.
+  local url="https://github.com/${REPO}/releases/latest"
+  local location
   case "$(_download_tool)" in
-    curl) body="$(curl -fsSL --stderr /dev/null \
+    curl) location="$(curl -fsSLI --stderr /dev/null \
             -H "User-Agent: lerd-installer" \
-            -H "Accept: application/vnd.github+json" \
-            "$url" || true)" ;;
-    wget) body="$(wget -qO- \
+            "$url" | grep -i '^location:' | tail -1)" ;;
+    wget) location="$(wget -qS --spider \
             --header "User-Agent: lerd-installer" \
-            --header "Accept: application/vnd.github+json" \
-            "$url" 2>/dev/null || true)" ;;
+            "$url" 2>&1 | grep -i 'Location:'  | tail -1)" ;;
   esac
 
-  # GitHub returns {"message":"Not Found"} when there are no releases yet,
-  # or {"message":"API rate limit exceeded..."} on 403.
-  if echo "$body" | grep -q '"message"'; then
-    echo ""
-    return
-  fi
-
-  echo "$body" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"v?([^"]+)".*/\1/' || true
+  # location header value looks like: .../releases/tag/v0.1.33
+  echo "$location" | sed -E 's|.*/releases/tag/v?([^[:space:]]+).*|\1|' | tr -d '\r'
 }
 
 # download_binary <version> <arch> <destdir>

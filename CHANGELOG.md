@@ -7,6 +7,14 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.34] — 2026-03-17
+
+### Fixed
+
+- Version detection in both `lerd update` and `install.sh` no longer uses the GitHub REST API — it now follows the `https://github.com/{repo}/releases/latest` HTML redirect to extract the tag from the URL; this endpoint is not rate-limited (60 req/hour limit on the API was causing "No releases found" / HTTP 403 for anyone who ran the installer more than a few times)
+
+---
+
 ## [0.1.33] — 2026-03-17
 
 ### Fixed

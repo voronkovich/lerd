@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/geodro/lerd/internal/podman"
 	"github.com/spf13/cobra"
@@ -115,33 +115,37 @@ func restartUI() {
 }
 
 func fetchLatestVersion() (string, error) {
-	req, err := http.NewRequest(http.MethodGet, githubAPIBase+"/releases/latest", nil) //nolint:noctx
+	// Use the HTML releases/latest redirect — not rate-limited unlike the API.
+	url := "https://github.com/" + githubRepo + "/releases/latest"
+
+	client := &http.Client{
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse // don't follow; we want the Location header
+		},
+	}
+	req, err := http.NewRequest(http.MethodGet, url, nil) //nolint:noctx
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("User-Agent", "lerd-cli")
-	req.Header.Set("Accept", "application/vnd.github+json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("GitHub API returned HTTP %d", resp.StatusCode)
+	location := resp.Header.Get("Location")
+	if location == "" {
+		return "", fmt.Errorf("no redirect from %s (HTTP %d)", url, resp.StatusCode)
 	}
 
-	var payload struct {
-		TagName string `json:"tag_name"`
+	// Location: https://github.com/geodro/lerd/releases/tag/v0.1.33
+	parts := strings.Split(location, "/tag/")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("unexpected release URL format: %s", location)
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return "", err
-	}
-	if payload.TagName == "" {
-		return "", fmt.Errorf("empty tag_name in GitHub response")
-	}
-	return payload.TagName, nil
+	return parts[1], nil
 }
 
 // downloadReleaseBinary downloads and extracts the release archive for the
