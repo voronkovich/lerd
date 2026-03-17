@@ -39,7 +39,7 @@ func runSecure(_ *cobra.Command, args []string) error {
 
 	fmt.Printf("Issuing certificate for %s...\n", site.Domain)
 
-	if err := certs.SecureSite(site.Domain, site.PHPVersion); err != nil {
+	if err := certs.SecureSite(*site); err != nil {
 		return err
 	}
 

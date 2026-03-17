@@ -10,19 +10,18 @@ import (
 )
 
 // SecureSite issues a TLS certificate for the site and switches its nginx vhost to HTTPS.
-func SecureSite(domain, phpVersion string) error {
+func SecureSite(site config.Site) error {
 	certsDir := filepath.Join(config.CertsDir(), "sites")
-	if err := IssueCert(domain, certsDir); err != nil {
+	if err := IssueCert(site.Domain, certsDir); err != nil {
 		return fmt.Errorf("issuing certificate: %w", err)
 	}
 
-	site := config.Site{Domain: domain, PHPVersion: phpVersion}
-	if err := nginx.GenerateSSLVhost(site, phpVersion); err != nil {
+	if err := nginx.GenerateSSLVhost(site, site.PHPVersion); err != nil {
 		return fmt.Errorf("generating SSL vhost: %w", err)
 	}
 
-	sslConf := filepath.Join(config.NginxConfD(), domain+"-ssl.conf")
-	mainConf := filepath.Join(config.NginxConfD(), domain+".conf")
+	sslConf := filepath.Join(config.NginxConfD(), site.Domain+"-ssl.conf")
+	mainConf := filepath.Join(config.NginxConfD(), site.Domain+".conf")
 	if err := os.Remove(mainConf); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("removing HTTP vhost: %w", err)
 	}
@@ -34,21 +33,20 @@ func SecureSite(domain, phpVersion string) error {
 }
 
 // UnsecureSite regenerates a plain HTTP vhost for the site, removing TLS.
-func UnsecureSite(domain, phpVersion string) error {
-	mainConf := filepath.Join(config.NginxConfD(), domain+".conf")
+func UnsecureSite(site config.Site) error {
+	mainConf := filepath.Join(config.NginxConfD(), site.Domain+".conf")
 	if err := os.Remove(mainConf); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("removing SSL vhost: %w", err)
 	}
 
-	site := config.Site{Domain: domain, PHPVersion: phpVersion}
-	if err := nginx.GenerateVhost(site, phpVersion); err != nil {
+	if err := nginx.GenerateVhost(site, site.PHPVersion); err != nil {
 		return fmt.Errorf("generating HTTP vhost: %w", err)
 	}
 
 	// Remove cert files
 	certsDir := filepath.Join(config.CertsDir(), "sites")
-	os.Remove(filepath.Join(certsDir, domain+".crt")) //nolint:errcheck
-	os.Remove(filepath.Join(certsDir, domain+".key")) //nolint:errcheck
+	os.Remove(filepath.Join(certsDir, site.Domain+".crt")) //nolint:errcheck
+	os.Remove(filepath.Join(certsDir, site.Domain+".key")) //nolint:errcheck
 
 	return nginx.Reload()
 }

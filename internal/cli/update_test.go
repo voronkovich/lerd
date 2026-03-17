@@ -3,7 +3,6 @@ package cli
 import (
 	"archive/tar"
 	"compress/gzip"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -35,13 +34,13 @@ func TestStripV(t *testing.T) {
 
 func TestFetchLatestVersion_success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]string{"tag_name": "v1.2.3"})
+		http.Redirect(w, r, r.URL.String()+"/tag/v1.2.3", http.StatusFound)
 	}))
 	defer srv.Close()
 
-	orig := githubAPIBase
-	githubAPIBase = srv.URL
-	defer func() { githubAPIBase = orig }()
+	orig := githubReleasesBase
+	githubReleasesBase = srv.URL
+	defer func() { githubReleasesBase = orig }()
 
 	got, err := fetchLatestVersion()
 	if err != nil {
@@ -54,13 +53,13 @@ func TestFetchLatestVersion_success(t *testing.T) {
 
 func TestFetchLatestVersion_withoutVPrefix(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]string{"tag_name": "0.9.0"})
+		http.Redirect(w, r, r.URL.String()+"/tag/0.9.0", http.StatusFound)
 	}))
 	defer srv.Close()
 
-	orig := githubAPIBase
-	githubAPIBase = srv.URL
-	defer func() { githubAPIBase = orig }()
+	orig := githubReleasesBase
+	githubReleasesBase = srv.URL
+	defer func() { githubReleasesBase = orig }()
 
 	got, err := fetchLatestVersion()
 	if err != nil {
@@ -74,13 +73,12 @@ func TestFetchLatestVersion_withoutVPrefix(t *testing.T) {
 func TestFetchLatestVersion_notFound(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"message":"Not Found"}`))
 	}))
 	defer srv.Close()
 
-	orig := githubAPIBase
-	githubAPIBase = srv.URL
-	defer func() { githubAPIBase = orig }()
+	orig := githubReleasesBase
+	githubReleasesBase = srv.URL
+	defer func() { githubReleasesBase = orig }()
 
 	_, err := fetchLatestVersion()
 	if err == nil {
@@ -88,19 +86,19 @@ func TestFetchLatestVersion_notFound(t *testing.T) {
 	}
 }
 
-func TestFetchLatestVersion_emptyTagName(t *testing.T) {
+func TestFetchLatestVersion_emptyTag(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]string{"tag_name": ""})
+		http.Redirect(w, r, r.URL.String()+"/tag/", http.StatusFound)
 	}))
 	defer srv.Close()
 
-	orig := githubAPIBase
-	githubAPIBase = srv.URL
-	defer func() { githubAPIBase = orig }()
+	orig := githubReleasesBase
+	githubReleasesBase = srv.URL
+	defer func() { githubReleasesBase = orig }()
 
 	_, err := fetchLatestVersion()
 	if err == nil {
-		t.Fatal("expected error for empty tag_name, got nil")
+		t.Fatal("expected error for empty tag, got nil")
 	}
 }
 
@@ -110,9 +108,9 @@ func TestFetchLatestVersion_serverError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	orig := githubAPIBase
-	githubAPIBase = srv.URL
-	defer func() { githubAPIBase = orig }()
+	orig := githubReleasesBase
+	githubReleasesBase = srv.URL
+	defer func() { githubReleasesBase = orig }()
 
 	_, err := fetchLatestVersion()
 	if err == nil {
@@ -233,13 +231,13 @@ func TestCopyFile_missingSource(t *testing.T) {
 
 func TestRunUpdate_alreadyLatest(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]string{"tag_name": "v1.0.0"})
+		http.Redirect(w, r, r.URL.String()+"/tag/v1.0.0", http.StatusFound)
 	}))
 	defer srv.Close()
 
-	orig := githubAPIBase
-	githubAPIBase = srv.URL
-	defer func() { githubAPIBase = orig }()
+	orig := githubReleasesBase
+	githubReleasesBase = srv.URL
+	defer func() { githubReleasesBase = orig }()
 
 	// Should return nil without downloading anything
 	err := runUpdate("1.0.0")

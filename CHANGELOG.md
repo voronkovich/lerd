@@ -7,6 +7,15 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.38] — 2026-03-17
+
+### Fixed
+
+- HTTPS sites no longer return "File not found" — `SecureSite` was constructing a bare `config.Site` with only `Domain` and `PHPVersion`, leaving `Path` empty so the generated SSL vhost had `root /public`; it now receives the full site struct
+- `fetchLatestVersion` tests updated to use the redirect-based approach (fixes broken test suite after v0.1.34 change)
+
+---
+
 ## [0.1.37] — 2026-03-17
 
 ### Fixed

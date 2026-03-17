@@ -441,13 +441,13 @@ func handleSiteAction(w http.ResponseWriter, r *http.Request) {
 
 	switch action {
 	case "secure":
-		if err := certs.SecureSite(site.Domain, site.PHPVersion); err != nil {
+		if err := certs.SecureSite(*site); err != nil {
 			writeJSON(w, SiteActionResponse{Error: err.Error()})
 			return
 		}
 		site.Secured = true
 	case "unsecure":
-		if err := certs.UnsecureSite(site.Domain, site.PHPVersion); err != nil {
+		if err := certs.UnsecureSite(*site); err != nil {
 			writeJSON(w, SiteActionResponse{Error: err.Error()})
 			return
 		}

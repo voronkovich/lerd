@@ -18,7 +18,7 @@ const githubRepo = "geodro/lerd"
 
 // These vars are overridden in tests to point at an httptest server.
 var (
-	githubAPIBase      = "https://api.github.com/repos/" + githubRepo
+	githubReleasesBase = "https://github.com/" + githubRepo + "/releases"
 	githubDownloadBase = "https://github.com/" + githubRepo + "/releases/download"
 )
 
@@ -116,7 +116,7 @@ func restartUI() {
 
 func fetchLatestVersion() (string, error) {
 	// Use the HTML releases/latest redirect — not rate-limited unlike the API.
-	url := "https://github.com/" + githubRepo + "/releases/latest"
+	url := githubReleasesBase + "/latest"
 
 	client := &http.Client{
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
@@ -135,14 +135,18 @@ func fetchLatestVersion() (string, error) {
 	}
 	resp.Body.Close()
 
-	location := resp.Header.Get("Location")
-	if location == "" {
-		return "", fmt.Errorf("no redirect from %s (HTTP %d)", url, resp.StatusCode)
+	if resp.StatusCode != http.StatusFound && resp.StatusCode != http.StatusMovedPermanently {
+		return "", fmt.Errorf("unexpected status from %s: HTTP %d", url, resp.StatusCode)
 	}
 
-	// Location: https://github.com/geodro/lerd/releases/tag/v0.1.33
+	location := resp.Header.Get("Location")
+	if location == "" {
+		return "", fmt.Errorf("no Location header in redirect from %s", url)
+	}
+
+	// Location: .../releases/tag/v0.1.37
 	parts := strings.Split(location, "/tag/")
-	if len(parts) != 2 {
+	if len(parts) != 2 || parts[1] == "" {
 		return "", fmt.Errorf("unexpected release URL format: %s", location)
 	}
 	return parts[1], nil
