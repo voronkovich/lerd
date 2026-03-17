@@ -7,6 +7,14 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.40] — 2026-03-17
+
+### Fixed
+
+- Sites tab now shows the live PHP/Node version detected from disk (`.php-version`, `.lerd.yaml`, `composer.json`) instead of the stale value stored in `sites.yaml`; if the detected version differs, `sites.yaml` is updated automatically
+
+---
+
 ## [0.1.39] — 2026-03-17
 
 ### Added

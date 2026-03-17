@@ -20,6 +20,7 @@ import (
 	"github.com/geodro/lerd/internal/config"
 	"github.com/geodro/lerd/internal/dns"
 	"github.com/geodro/lerd/internal/nginx"
+	nodePkg "github.com/geodro/lerd/internal/node"
 	phpPkg "github.com/geodro/lerd/internal/php"
 	"github.com/geodro/lerd/internal/podman"
 )
@@ -207,16 +208,36 @@ func handleSites(w http.ResponseWriter, _ *http.Request) {
 
 	var sites []SiteResponse
 	for _, s := range reg.Sites {
+		// Always detect the live version from disk so .php-version / .node-version
+		// files are reflected without needing a re-link.
+		phpVersion := s.PHPVersion
+		if detected, err := phpPkg.DetectVersion(s.Path); err == nil && detected != "" {
+			phpVersion = detected
+			if phpVersion != s.PHPVersion {
+				s.PHPVersion = phpVersion
+				_ = config.AddSite(s) // keep sites.yaml in sync
+			}
+		}
+
+		nodeVersion := s.NodeVersion
+		if detected, err := nodePkg.DetectVersion(s.Path); err == nil && detected != "" {
+			nodeVersion = detected
+			if nodeVersion != s.NodeVersion {
+				s.NodeVersion = nodeVersion
+				_ = config.AddSite(s)
+			}
+		}
+
 		fpmRunning := false
-		if s.PHPVersion != "" {
-			short := strings.ReplaceAll(s.PHPVersion, ".", "")
+		if phpVersion != "" {
+			short := strings.ReplaceAll(phpVersion, ".", "")
 			fpmRunning, _ = podman.ContainerRunning("lerd-php" + short + "-fpm")
 		}
 		sites = append(sites, SiteResponse{
 			Domain:      s.Domain,
 			Path:        s.Path,
-			PHPVersion:  s.PHPVersion,
-			NodeVersion: s.NodeVersion,
+			PHPVersion:  phpVersion,
+			NodeVersion: nodeVersion,
 			TLS:         s.Secured,
 			FPMRunning:  fpmRunning,
 		})
