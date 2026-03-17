@@ -26,6 +26,7 @@ func main() {
 	root.AddCommand(cli.NewParkCmd())
 	root.AddCommand(cli.NewLinkCmd())
 	root.AddCommand(cli.NewUnlinkCmd())
+	root.AddCommand(cli.NewUnparkCmd())
 	root.AddCommand(cli.NewSitesCmd())
 	root.AddCommand(cli.NewSecureCmd())
 	root.AddCommand(cli.NewUseCmd())

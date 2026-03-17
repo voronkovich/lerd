@@ -1,7 +1,6 @@
 package dns
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -46,9 +45,11 @@ func Setup() error {
 
 	// Restart NetworkManager
 	cmd := exec.Command("sudo", "systemctl", "restart", "NetworkManager")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("restarting NetworkManager: %w\n%s", err, out)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("restarting NetworkManager: %w", err)
 	}
 	return nil
 }
@@ -61,19 +62,35 @@ func WriteDnsmasqConfig(dir string) error {
 	return os.WriteFile(filepath.Join(dir, "lerd.conf"), []byte(dnsmasqConf), 0644)
 }
 
-// sudoWriteFile writes content to a system path using sudo tee.
+// sudoWriteFile writes content to a system path by writing to a temp file
+// then using sudo cp, so sudo can prompt for a password on the terminal.
 func sudoWriteFile(path string, content []byte) error {
+	tmp, err := os.CreateTemp("", "lerd-sudo-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(content); err != nil {
+		tmp.Close()
+		return err
+	}
+	tmp.Close()
+
 	dir := filepath.Dir(path)
 	mkdirCmd := exec.Command("sudo", "mkdir", "-p", dir)
-	if out, err := mkdirCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("mkdir %s: %w\n%s", dir, err, out)
+	mkdirCmd.Stdin = os.Stdin
+	mkdirCmd.Stdout = os.Stdout
+	mkdirCmd.Stderr = os.Stderr
+	if err := mkdirCmd.Run(); err != nil {
+		return fmt.Errorf("mkdir %s: %w", dir, err)
 	}
 
-	teeCmd := exec.Command("sudo", "tee", path)
-	teeCmd.Stdin = bytes.NewReader(content)
-	out, err := teeCmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("tee %s: %w\n%s", path, err, out)
+	cpCmd := exec.Command("sudo", "cp", tmp.Name(), path)
+	cpCmd.Stdin = os.Stdin
+	cpCmd.Stdout = os.Stdout
+	cpCmd.Stderr = os.Stderr
+	if err := cpCmd.Run(); err != nil {
+		return fmt.Errorf("cp to %s: %w", path, err)
 	}
 	return nil
 }

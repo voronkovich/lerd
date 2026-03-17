@@ -34,19 +34,19 @@ func runLink(args []string, customDomain string) error {
 		return err
 	}
 
-	name := filepath.Base(cwd)
-	if len(args) > 0 {
-		name = args[0]
-	}
-
 	cfg, err := config.LoadGlobal()
 	if err != nil {
 		return err
 	}
 
-	domain := customDomain
-	if domain == "" {
-		domain = name + "." + cfg.DNS.TLD
+	rawName := filepath.Base(cwd)
+	if len(args) > 0 {
+		rawName = args[0]
+	}
+
+	name, domain := siteNameAndDomain(rawName, cfg.DNS.TLD)
+	if customDomain != "" {
+		domain = customDomain
 	}
 
 	phpVersion, err := phpDet.DetectVersion(cwd)

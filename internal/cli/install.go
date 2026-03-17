@@ -189,8 +189,11 @@ func ensureUnprivilegedPorts() error {
 	}
 	for _, args := range cmds {
 		cmd := exec.Command(args[0], args[1:]...)
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("setting unprivileged port start: %w\n%s", err, out)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("setting unprivileged port start: %w", err)
 		}
 	}
 	ok()

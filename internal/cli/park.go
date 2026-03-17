@@ -81,8 +81,7 @@ func runPark(_ *cobra.Command, args []string) error {
 			continue
 		}
 
-		name := entry.Name()
-		domain := name + "." + cfg.DNS.TLD
+		name, domain := siteNameAndDomain(entry.Name(), cfg.DNS.TLD)
 
 		phpVersion, err := phpDet.DetectVersion(projectDir)
 		if err != nil {
@@ -131,6 +130,29 @@ func runPark(_ *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// siteNameAndDomain converts a directory name into a clean site name and .test domain.
+// Strips well-known TLDs (e.g. .com, .ltd) and replaces remaining dots with dashes.
+// Examples:
+//   - "myapp"            → "myapp",         "myapp.test"
+//   - "admin.astrolov.com" → "admin-astrolov", "admin-astrolov.test"
+//   - "my.project.io"   → "my-project",     "my-project.test"
+func siteNameAndDomain(dirName, tld string) (string, string) {
+	knownTLDs := []string{
+		".com", ".net", ".org", ".io", ".co", ".ltd", ".dev", ".app", ".me",
+		".info", ".biz", ".uk", ".us", ".eu", ".de", ".fr", ".ca", ".au",
+	}
+	name := dirName
+	lower := strings.ToLower(dirName)
+	for _, ext := range knownTLDs {
+		if strings.HasSuffix(lower, ext) {
+			name = name[:len(name)-len(ext)]
+			break
+		}
+	}
+	name = strings.ReplaceAll(name, ".", "-")
+	return name, name + "." + tld
 }
 
 // ensureFPMQuadlet writes a PHP-FPM quadlet for the given version if it doesn't exist.

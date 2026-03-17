@@ -8,12 +8,12 @@ import (
 	"github.com/geodro/lerd/internal/config"
 )
 
-var phpBinRe = regexp.MustCompile(`^php(\d+\.\d+)$`)
+var fpmQuadletRe = regexp.MustCompile(`^lerd-php(\d)(\d+)-fpm\.container$`)
 
-// ListInstalled returns all PHP versions installed in the lerd bin directory.
-// Versions are returned in sorted order, e.g. ["8.3", "8.4"].
+// ListInstalled returns all PHP versions that have an FPM quadlet file,
+// e.g. ["8.3", "8.4"]. These are installed via `lerd use <version>`.
 func ListInstalled() ([]string, error) {
-	pattern := filepath.Join(config.BinDir(), "php*")
+	pattern := filepath.Join(config.QuadletDir(), "lerd-php*-fpm.container")
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, err
@@ -22,9 +22,9 @@ func ListInstalled() ([]string, error) {
 	var versions []string
 	for _, m := range matches {
 		base := filepath.Base(m)
-		sub := phpBinRe.FindStringSubmatch(base)
-		if len(sub) == 2 {
-			versions = append(versions, sub[1])
+		sub := fpmQuadletRe.FindStringSubmatch(base)
+		if len(sub) == 3 {
+			versions = append(versions, sub[1]+"."+sub[2])
 		}
 	}
 
@@ -32,7 +32,7 @@ func ListInstalled() ([]string, error) {
 	return versions, nil
 }
 
-// IsInstalled returns true if the given PHP version is available in the bin dir.
+// IsInstalled returns true if the given PHP version has an FPM quadlet.
 func IsInstalled(version string) bool {
 	versions, err := ListInstalled()
 	if err != nil {

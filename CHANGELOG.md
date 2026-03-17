@@ -7,6 +7,24 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.9] — 2026-03-17
+
+### Fixed
+
+- `lerd-dns.container` quadlet template was embedded from the wrong source directory (`internal/podman/quadlets/`) — the file still referenced `andyshinn/dnsmasq` with `Network=host`, causing the DNS container to fail with "Permission denied on port 53"; updated to the Alpine-based dnsmasq on port 5300 via published port
+- `dns.Setup()` and `ensureUnprivilegedPorts()` — `sudo` subprocesses now have `Stdin/Stdout/Stderr` connected to the process terminal so password prompts display correctly instead of failing with "a terminal is required"
+
+### Added
+
+- `lerd unpark [directory]` — removes a parked directory and unlinks all sites registered from it
+
+### Changed
+
+- `lerd park` and `lerd link` — directory names with real TLDs (`.com`, `.net`, `.org`, `.io`, `.ltd`, etc.) now have the TLD stripped and remaining dots replaced with dashes before appending `.test` (e.g. `admin.astrolov.com` → `admin-astrolov.test`)
+- `lerd use <version>` / `lerd status` — PHP version detection now tracks FPM quadlet files instead of static CLI binaries, so `lerd use 8.4` is immediately reflected in `lerd status`
+
+---
+
 ## [0.1.8] — 2026-03-17
 
 ### Fixed
@@ -144,6 +162,7 @@ Initial release.
 
 ---
 
+[0.1.9]: https://github.com/geodro/lerd/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/geodro/lerd/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/geodro/lerd/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/geodro/lerd/compare/v0.1.5...v0.1.6
