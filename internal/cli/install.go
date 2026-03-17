@@ -82,9 +82,9 @@ func runInstall(_ *cobra.Command, _ []string) error {
 	}
 	ok()
 
-	// 5. DNS config
+	// 5. DNS config file (written early so the container has it on first start)
 	step("Writing DNS configuration")
-	if err := dns.Setup(); err != nil {
+	if err := dns.WriteDnsmasqConfig(config.DnsmasqDir()); err != nil {
 		return fmt.Errorf("dns config: %w", err)
 	}
 	ok()
@@ -167,6 +167,15 @@ func runInstall(_ *cobra.Command, _ []string) error {
 
 	step("Starting lerd-dns")
 	if err := podman.RestartUnit("lerd-dns"); err != nil {
+		fmt.Printf(" [WARN: %v]\n", err)
+	} else {
+		ok()
+	}
+
+	// Configure system resolver now that dnsmasq is running, so applying resolvectl
+	// immediately doesn't break DNS before the container is up.
+	step("Configuring DNS resolver")
+	if err := dns.ConfigureResolver(); err != nil {
 		fmt.Printf(" [WARN: %v]\n", err)
 	} else {
 		ok()

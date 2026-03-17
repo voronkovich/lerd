@@ -118,11 +118,20 @@ func parseNameservers(path string) []string {
 // On systemd-resolved + NetworkManager systems (Ubuntu etc.) it uses an NM dispatcher script.
 // On pure systemd-resolved systems it uses a resolved drop-in.
 // On NetworkManager-only systems it uses NM's embedded dnsmasq.
+//
+// Deprecated: prefer calling WriteDnsmasqConfig then ConfigureResolver separately so
+// that the dnsmasq container can be started between the two steps.
 func Setup() error {
 	if err := WriteDnsmasqConfig(config.DnsmasqDir()); err != nil {
 		return fmt.Errorf("writing lerd dnsmasq config: %w", err)
 	}
+	return ConfigureResolver()
+}
 
+// ConfigureResolver configures the system DNS resolver to forward .test to the
+// lerd-dns dnsmasq container on port 5300. Call this after lerd-dns is running so
+// that any immediate resolvectl changes don't break DNS before dnsmasq is up.
+func ConfigureResolver() error {
 	if isSystemdResolvedActive() {
 		if isNetworkManagerActive() {
 			return setupNMWithResolved()
