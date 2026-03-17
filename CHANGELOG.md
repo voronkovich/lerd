@@ -7,6 +7,14 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.24] — 2026-03-17
+
+### Fixed
+
+- `lerd.test` proxy vhost now uses `host.containers.internal` instead of the Podman network gateway IP — the gateway IP is typically blocked by the host firewall for connections from containers, while `host.containers.internal` is a Podman built-in that always routes to the host correctly
+
+---
+
 ## [0.1.23] — 2026-03-17
 
 ### Fixed
@@ -310,6 +318,7 @@ Initial release.
 
 ---
 
+[0.1.24]: https://github.com/geodro/lerd/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/geodro/lerd/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/geodro/lerd/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/geodro/lerd/compare/v0.1.20...v0.1.21

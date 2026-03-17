@@ -184,8 +184,9 @@ func runInstall(_ *cobra.Command, _ []string) error {
 	}
 
 	step("Writing UI vhost")
-	gateway := podman.NetworkGateway("lerd")
-	if err := nginx.GenerateProxyVhost("lerd.test", gateway, 7073); err != nil {
+	// host.containers.internal is a Podman built-in hostname that always resolves
+	// to the host from inside any container, bypassing firewall rules on the gateway IP.
+	if err := nginx.GenerateProxyVhost("lerd.test", "host.containers.internal", 7073); err != nil {
 		fmt.Printf(" [WARN: %v]\n", err)
 	} else {
 		ok()
