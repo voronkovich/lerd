@@ -1,0 +1,18 @@
+[Unit]
+Description=Lerd MySQL
+After=network.target
+
+[Container]
+Image=mysql:8.0
+ContainerName=lerd-mysql
+Network=lerd
+PublishPort=3306:3306
+Volume=%h/.local/share/lerd/data/mysql:/var/lib/mysql
+Environment=MYSQL_ROOT_PASSWORD=lerd
+Environment=MYSQL_DATABASE=lerd
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

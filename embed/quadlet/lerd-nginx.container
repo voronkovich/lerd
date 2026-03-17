@@ -1,0 +1,19 @@
+[Unit]
+Description=Lerd Nginx Web Server
+After=network.target
+
+[Container]
+Image=nginx:alpine
+ContainerName=lerd-nginx
+Network=lerd
+PublishPort=80:80
+PublishPort=443:443
+Volume=%h/.local/share/lerd/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+Volume=%h/.local/share/lerd/nginx/conf.d:/etc/nginx/conf.d:ro
+Volume=%h/.local/share/lerd/certs/sites:/etc/nginx/certs:ro
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

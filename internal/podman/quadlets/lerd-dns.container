@@ -1,0 +1,17 @@
+[Unit]
+Description=Lerd DNS (dnsmasq)
+After=network.target
+
+[Container]
+Image=andyshinn/dnsmasq:latest
+ContainerName=lerd-dns
+Network=host
+AddCapability=NET_ADMIN
+Volume=%h/.local/share/lerd/dnsmasq/lerd.conf:/etc/dnsmasq.d/lerd.conf:ro
+Exec=--port=5300 --no-resolv --address=/.test/127.0.0.1
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

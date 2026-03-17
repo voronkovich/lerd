@@ -1,0 +1,395 @@
+# Lerd
+
+Laravel Herd for Linux — a Podman-native local development environment for Laravel projects.
+
+Lerd bundles Nginx, PHP-FPM, and optional services (MySQL, Redis, PostgreSQL, Meilisearch, MinIO) as rootless Podman containers, giving you automatic `.test` domain routing, per-project PHP/Node version isolation, and one-command TLS — all without touching your system's PHP or web server.
+
+---
+
+## Requirements
+
+- Linux (Arch, Debian/Ubuntu, or Fedora-based)
+- [Podman](https://podman.io/) (rootless, with systemd user session active)
+- [NetworkManager](https://networkmanager.dev/) (for `.test` DNS)
+- `systemctl --user` functional (`loginctl enable-linger $USER` if needed)
+- `unzip` (used during install to extract fnm)
+
+Go is only needed to build from source. The released binary has no runtime dependencies.
+
+---
+
+## Installation
+
+### One-line installer (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/geodro/lerd/main/install.sh | bash
+# or with wget:
+wget -qO- https://raw.githubusercontent.com/geodro/lerd/main/install.sh | bash
+```
+
+This will:
+- Check and offer to install missing prerequisites (Podman, NetworkManager, unzip)
+- Download the latest `lerd` binary for your architecture (amd64 / arm64)
+- Install it to `~/.local/bin/lerd`
+- Add `~/.local/bin` to your shell's `PATH` (bash, zsh, or fish)
+
+Then run the one-time environment setup:
+
+```bash
+lerd install
+```
+
+### Update
+
+```bash
+lerd-installer --update
+# or pipe again:
+curl -fsSL https://raw.githubusercontent.com/geodro/lerd/main/install.sh | bash -s -- --update
+wget -qO- https://raw.githubusercontent.com/geodro/lerd/main/install.sh | bash -s -- --update
+```
+
+### Uninstall
+
+```bash
+lerd-installer --uninstall
+```
+
+Stops all containers, removes Quadlet units, removes the binary and PATH entry, and optionally deletes config/data directories.
+
+### Check prerequisites only
+
+```bash
+lerd-installer --check
+```
+
+### From source
+
+```bash
+git clone https://github.com/geodro/lerd
+cd lerd
+make build
+make install            # installs to ~/.local/bin/lerd
+make install-installer  # installs lerd-installer to ~/.local/bin/
+```
+
+`lerd install` will:
+
+1. Create XDG config and data directories
+2. Create the `lerd` Podman network
+3. Download static binaries: Composer, fnm, mkcert
+4. Install the mkcert CA into your system trust store
+5. Write and start the `lerd-dns` and `lerd-nginx` Podman Quadlet containers
+6. Enable the `lerd-watcher` background service (auto-discovers new projects)
+7. Add `~/.local/share/lerd/bin` to your shell's `PATH`
+
+> **DNS setup:** `lerd install` writes to `/etc/NetworkManager/dnsmasq.d/` and `/etc/NetworkManager/conf.d/` and restarts NetworkManager. This is the only step that requires `sudo`.
+
+After install, reload your shell or open a new terminal so `PATH` takes effect.
+
+---
+
+## Quick start
+
+```bash
+# 1. Park your projects directory — any Laravel project inside is auto-registered
+lerd park ~/Lerd
+
+# 2. Visit your project in a browser
+#    ~/Lerd/my-app  →  http://my-app.test
+
+# 3. Check everything is running
+lerd status
+```
+
+That's it. Nginx is serving your project through PHP-FPM, all inside Podman containers on the `lerd` network.
+
+---
+
+## Commands
+
+### Setup
+
+| Command | Description |
+|---|---|
+| `lerd install` | One-time setup: directories, network, binaries, DNS, nginx, watcher |
+| `lerd dns:check` | Verify that `*.test` resolves to `127.0.0.1` |
+| `lerd status` | Health summary: DNS, nginx, PHP-FPM containers, services, cert expiry |
+
+### Site management
+
+| Command | Description |
+|---|---|
+| `lerd park [dir]` | Register all Laravel projects inside `dir` (defaults to cwd) |
+| `lerd link [name]` | Register the current directory as a site |
+| `lerd link [name] --domain foo.test` | Register with a custom domain |
+| `lerd unlink` | Remove the current directory from Lerd |
+| `lerd sites` | Table view of all registered sites |
+| `lerd secure [name]` | Issue a mkcert TLS cert and enable HTTPS for a site |
+
+### PHP
+
+| Command | Description |
+|---|---|
+| `lerd use <version>` | Set the global PHP version (e.g. `lerd use 8.3`) |
+| `lerd isolate <version>` | Pin PHP version for cwd — writes `.php-version` |
+| `lerd php:list` | List all downloaded static PHP binaries |
+
+### Node
+
+| Command | Description |
+|---|---|
+| `lerd isolate:node <version>` | Pin Node version for cwd — writes `.node-version`, runs `fnm install` |
+
+### Services
+
+| Command | Description |
+|---|---|
+| `lerd service start <name>` | Start a service container |
+| `lerd service stop <name>` | Stop a service container |
+| `lerd service restart <name>` | Restart a service container |
+| `lerd service status <name>` | Show systemd unit status |
+| `lerd service list` | Show all services and their current state |
+
+Available services: `mysql`, `redis`, `postgres`, `meilisearch`, `minio`.
+
+### Shell completion
+
+```bash
+lerd completion bash   # add to ~/.bashrc
+lerd completion zsh    # add to ~/.zshrc
+lerd completion fish   # add to ~/.config/fish/completions/lerd.fish
+```
+
+---
+
+## PHP version resolution
+
+When serving a request, Lerd picks the PHP version for a project in this order:
+
+1. `.php-version` file in the project root (plain text, e.g. `8.2`)
+2. `.lerd.yaml` in the project root — `php_version` field
+3. `composer.json` — `require.php` constraint (e.g. `^8.2` → `8.2`)
+4. Global default in `~/.config/lerd/config.yaml`
+
+To pin a project permanently:
+
+```bash
+cd ~/Lerd/my-app
+lerd isolate 8.2
+# writes .php-version: 8.2 — commit this if you like
+```
+
+To change the global default:
+
+```bash
+lerd use 8.4
+```
+
+---
+
+## Node version resolution
+
+1. `.nvmrc` in the project root
+2. `.node-version` in the project root
+3. `package.json` — `engines.node` field
+4. Global default in `~/.config/lerd/config.yaml`
+
+To pin a project:
+
+```bash
+cd ~/Lerd/my-app
+lerd isolate:node 20
+# writes .node-version and runs: fnm install 20
+```
+
+---
+
+## HTTPS / TLS
+
+Lerd uses [mkcert](https://github.com/FiloSottile/mkcert) — a locally-trusted CA that your browser will accept without warnings.
+
+```bash
+cd ~/Lerd/my-app
+lerd secure
+# Issues a cert for my-app.test, regenerates the SSL vhost, reloads nginx
+# Visit https://my-app.test — no certificate warning
+```
+
+Certificates are stored in `~/.local/share/lerd/certs/sites/`.
+
+---
+
+## Configuration
+
+### Global config — `~/.config/lerd/config.yaml`
+
+Created automatically on first run with sensible defaults:
+
+```yaml
+php:
+  default_version: "8.4"
+node:
+  default_version: "22"
+nginx:
+  http_port: 80
+  https_port: 443
+dns:
+  tld: "test"
+parked_directories:
+  - ~/Lerd
+services:
+  mysql:       { enabled: true,  image: "mysql:8.0",                    port: 3306 }
+  redis:       { enabled: true,  image: "redis:7-alpine",               port: 6379 }
+  postgres:    { enabled: false, image: "postgres:16-alpine",           port: 5432 }
+  meilisearch: { enabled: false, image: "getmeili/meilisearch:v1.7",    port: 7700 }
+  minio:       { enabled: false, image: "minio/minio:latest",           port: 9000 }
+```
+
+### Per-project config — `.lerd.yaml`
+
+Optional file in a project root to override site settings:
+
+```yaml
+php_version: "8.2"
+node_version: "18"
+domain: "my-app.test"   # override the auto-generated domain
+secure: true
+```
+
+---
+
+## Directory layout
+
+```
+~/.config/lerd/
+└── config.yaml
+
+~/.config/containers/systemd/        # Podman Quadlet units (auto-loaded)
+~/.config/systemd/user/
+└── lerd-watcher.service
+
+~/.local/share/lerd/
+├── bin/                             # mkcert, fnm, static PHP binaries
+├── nginx/
+│   ├── nginx.conf
+│   ├── conf.d/                      # one .conf per site (auto-generated)
+│   └── logs/
+├── certs/
+│   ├── ca/
+│   └── sites/                       # per-domain .crt + .key
+├── data/                            # Podman volume bind-mounts
+│   ├── mysql/
+│   ├── redis/
+│   ├── postgres/
+│   ├── meilisearch/
+│   └── minio/
+├── dnsmasq/
+│   └── lerd.conf
+└── sites.yaml
+```
+
+---
+
+## Architecture
+
+All containers join the rootless Podman network `lerd`. Communication between Nginx and PHP-FPM uses container names as hostnames:
+
+```
+Browser → 127.0.0.1:80 → lerd-nginx
+                              └─ fastcgi_pass lerd-php84-fpm:9000
+                                     └─ lerd-php84-fpm (mounts ~/Lerd read-only)
+
+*.test → DNS → 127.0.0.1
+                   └─ lerd-dns (dnsmasq, host network, port 5300)
+                        ← NetworkManager forwards .test queries here
+```
+
+| Component | Technology |
+|---|---|
+| CLI | Go + Cobra, single static binary |
+| Web server | Podman Quadlet — `nginx:alpine` |
+| PHP-FPM | Podman Quadlet per version — `php:X.Y-fpm-alpine` |
+| PHP CLI | Static binary from [static-php.dev](https://static-php.dev) |
+| Composer | `composer.phar` via bundled PHP CLI |
+| Node | [fnm](https://github.com/Schniz/fnm) binary, version per project |
+| Services | Podman Quadlet containers |
+| DNS | dnsmasq container + NetworkManager integration |
+| TLS | [mkcert](https://github.com/FiloSottile/mkcert) — locally trusted CA |
+
+---
+
+## Building
+
+```bash
+make build      # → ./build/lerd
+make install    # → ~/.local/bin/lerd
+make test       # go test ./...
+make clean      # remove ./build/
+```
+
+Cross-compile for arm64:
+
+```bash
+GOARCH=arm64 GOOS=linux go build -o ./build/lerd-arm64 ./cmd/lerd
+```
+
+---
+
+## Service credentials (defaults)
+
+| Service | Host | Port | User | Password | DB |
+|---|---|---|---|---|---|
+| MySQL | 127.0.0.1 | 3306 | root | `lerd` | `lerd` |
+| PostgreSQL | 127.0.0.1 | 5432 | postgres | `lerd` | `lerd` |
+| Redis | 127.0.0.1 | 6379 | — | — | — |
+| Meilisearch | 127.0.0.1 | 7700 | — | — | — |
+| MinIO | 127.0.0.1 | 9000 | `lerd` | `lerdpassword` | — |
+
+MinIO console is available at `http://127.0.0.1:9001`.
+
+---
+
+## Troubleshooting
+
+**`.test` domains not resolving**
+
+```bash
+lerd dns:check
+# If it fails:
+sudo systemctl restart NetworkManager
+lerd dns:check
+```
+
+**Nginx not serving a site**
+
+```bash
+lerd status                         # check nginx and FPM are running
+podman logs lerd-nginx              # nginx error log
+cat ~/.local/share/lerd/nginx/conf.d/my-app.test.conf   # check generated vhost
+```
+
+**PHP-FPM container not running**
+
+```bash
+systemctl --user status lerd-php84-fpm
+systemctl --user start lerd-php84-fpm
+podman logs lerd-php84-fpm
+```
+
+**Permission denied on port 80/443**
+
+Rootless Podman cannot bind to ports below 1024 by default. Allow it:
+
+```bash
+sudo sysctl -w net.ipv4.ip_unprivileged_port_start=80
+# Make permanent:
+echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee /etc/sysctl.d/99-lerd.conf
+```
+
+**Watcher service not running**
+
+```bash
+systemctl --user status lerd-watcher
+systemctl --user start lerd-watcher
+```

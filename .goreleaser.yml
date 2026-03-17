@@ -1,0 +1,83 @@
+version: 2
+
+project_name: lerd
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: lerd
+    main: ./cmd/lerd
+    binary: lerd
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/geodro/lerd/internal/version.Version={{.Version}}
+      - -X github.com/geodro/lerd/internal/version.Commit={{.Commit}}
+      - -X github.com/geodro/lerd/internal/version.Date={{.Date}}
+
+archives:
+  - id: lerd
+    builds: [lerd]
+    name_template: "lerd_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: tar.gz
+    files:
+      - README.md
+      - install.sh
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "Merge pull request"
+      - "Merge branch"
+  groups:
+    - title: Features
+      regexp: "^feat"
+      order: 0
+    - title: Bug Fixes
+      regexp: "^fix"
+      order: 1
+    - title: Other
+      order: 999
+
+release:
+  github:
+    owner: geodro
+    name: lerd
+  name_template: "v{{ .Version }}"
+  draft: false
+  prerelease: auto
+  header: |
+    ## Lerd {{ .Version }}
+
+    Laravel Herd for Linux — Podman-native dev environment.
+
+    ### Install / Upgrade
+
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/geodro/lerd/main/install.sh | bash
+    ```
+
+    Or if already installed:
+
+    ```bash
+    lerd-installer --update
+    ```
+  footer: |
+    **Full Changelog**: https://github.com/geodro/lerd/compare/{{ .PreviousTag }}...{{ .Tag }}

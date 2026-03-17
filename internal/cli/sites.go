@@ -1,0 +1,65 @@
+package cli
+
+import (
+	"fmt"
+
+	"github.com/geodro/lerd/internal/config"
+	"github.com/spf13/cobra"
+)
+
+// NewSitesCmd returns the sites command.
+func NewSitesCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "sites",
+		Short: "List all registered sites",
+		RunE:  runSites,
+	}
+}
+
+func runSites(_ *cobra.Command, _ []string) error {
+	reg, err := config.LoadSites()
+	if err != nil {
+		return err
+	}
+
+	if len(reg.Sites) == 0 {
+		fmt.Println("No sites registered. Use 'lerd park' or 'lerd link' to add sites.")
+		return nil
+	}
+
+	// Print header
+	fmt.Printf("%-25s %-35s %-8s %-8s %-5s %s\n",
+		"Name", "Domain", "PHP", "Node", "TLS", "Path")
+	fmt.Printf("%-25s %-35s %-8s %-8s %-5s %s\n",
+		"─────────────────────────",
+		"───────────────────────────────────",
+		"────────",
+		"────────",
+		"─────",
+		"──────────────────────────────",
+	)
+
+	for _, s := range reg.Sites {
+		tls := "No"
+		if s.Secured {
+			tls = "Yes"
+		}
+		fmt.Printf("%-25s %-35s %-8s %-8s %-5s %s\n",
+			truncate(s.Name, 25),
+			truncate(s.Domain, 35),
+			s.PHPVersion,
+			s.NodeVersion,
+			tls,
+			s.Path,
+		)
+	}
+
+	return nil
+}
+
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max-3] + "..."
+}
