@@ -108,7 +108,6 @@ type proxyVhostData struct {
 	Domain       string
 	UpstreamHost string
 	UpstreamPort int
-	Resolver     string
 }
 
 // GenerateProxyVhost renders vhost-proxy.conf.tmpl and writes conf.d/{domain}.conf.
@@ -123,12 +122,10 @@ func GenerateProxyVhost(domain, upstreamHost string, upstreamPort int) error {
 		return err
 	}
 
-	resolver := podman.NetworkGateway("lerd")
 	data := proxyVhostData{
 		Domain:       domain,
 		UpstreamHost: upstreamHost,
 		UpstreamPort: upstreamPort,
-		Resolver:     resolver,
 	}
 
 	var buf bytes.Buffer

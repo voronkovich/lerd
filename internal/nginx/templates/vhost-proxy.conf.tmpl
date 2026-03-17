@@ -3,9 +3,7 @@ server {
     server_name {{.Domain}};
 
     location / {
-        resolver {{.Resolver}} valid=5s ipv6=off;
-        set $upstream "{{.UpstreamHost}}";
-        proxy_pass http://$upstream:{{.UpstreamPort}};
+        proxy_pass http://{{.UpstreamHost}}:{{.UpstreamPort}};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

@@ -7,6 +7,14 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.26] — 2026-03-17
+
+### Fixed
+
+- `lerd.test` proxy vhost no longer uses `resolver` + `set $upstream` — nginx's resolver directive only works with DNS, but `host.containers.internal` is resolved via `/etc/hosts` inside the container; using a static `proxy_pass http://host.containers.internal:7073` lets nginx resolve it correctly at startup
+
+---
+
 ## [0.1.25] — 2026-03-17
 
 ### Changed
@@ -327,6 +335,7 @@ Initial release.
 
 ---
 
+[0.1.26]: https://github.com/geodro/lerd/compare/v0.1.25...v0.1.26
 [0.1.25]: https://github.com/geodro/lerd/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/geodro/lerd/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/geodro/lerd/compare/v0.1.22...v0.1.23
