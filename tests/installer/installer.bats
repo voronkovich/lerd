@@ -192,10 +192,12 @@ teardown() {
 # ── installed_version ─────────────────────────────────────────────────────────
 
 @test "installed_version returns empty string when lerd not found" {
-  # Ensure lerd is not on PATH
+  # Create an empty bin dir first, then restrict PATH to it
+  local empty_dir="$BATS_TMPDIR/empty-path-$$"
+  mkdir -p "$empty_dir"
+
   OLD_PATH="$PATH"
-  export PATH="$BATS_TMPDIR/empty-path-$$"
-  mkdir -p "$PATH"
+  export PATH="$empty_dir"
 
   run installed_version
   [ "$output" = "" ]

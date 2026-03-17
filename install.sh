@@ -218,7 +218,7 @@ latest_version() {
     return
   fi
 
-  echo "$body" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"v?([^"]+)".*/\1/'
+  echo "$body" | grep '"tag_name"' | sed -E 's/.*"tag_name": *"v?([^"]+)".*/\1/' || true
 }
 
 download_binary() {
@@ -446,4 +446,6 @@ main() {
 }
 
 # Only run main when executed directly, not when sourced (e.g. for testing).
-[[ "${BASH_SOURCE[0]}" == "${0}" ]] && main "$@"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi
