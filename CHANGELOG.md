@@ -7,6 +7,15 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.0] — 2026-03-17
+
+### Changed
+
+- UI completely redesigned: dark theme inspired by Laravel.com with near-black background, red accents, and top navbar replacing the sidebar
+- Light / Auto / Dark theme toggle added to the navbar; preference persists in localStorage
+
+---
+
 ## [0.1.66] — 2026-03-17
 
 ### Fixed
