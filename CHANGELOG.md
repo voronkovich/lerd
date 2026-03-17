@@ -7,6 +7,15 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.1] — 2026-03-17
+
+### Fixed
+
+- `install.sh` — replaced `[[ ... ]] && main "$@"` guard with `if/fi` so the script sources cleanly under `set -euo pipefail` (the `&&` idiom exits with code 1 when the condition is false, which `set -e` treated as fatal)
+- `install.sh` — `latest_version` no longer exits non-zero when the GitHub API returns no `tag_name` (e.g. curl failure or no releases yet)
+
+---
+
 ## [0.1.0] — 2026-03-17
 
 Initial release.
@@ -72,4 +81,5 @@ Initial release.
 
 ---
 
+[0.1.1]: https://github.com/geodro/lerd/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/geodro/lerd/releases/tag/v0.1.0
