@@ -190,6 +190,12 @@ install_packages() {
   esac
 
   success "Packages installed"
+
+  # Initialize podman storage for the current user after first install.
+  # This runs any pending migrations and sets up ~/.local/share/containers.
+  if command -v podman &>/dev/null; then
+    podman system migrate &>/dev/null || true
+  fi
 }
 
 # ── Download tool ────────────────────────────────────────────────────────────
