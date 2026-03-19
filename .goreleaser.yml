@@ -12,6 +12,8 @@ builds:
     binary: lerd
     env:
       - CGO_ENABLED=0
+    flags:
+      - -tags=nogui
     goos:
       - linux
     goarch:

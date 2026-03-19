@@ -276,6 +276,12 @@ func runInstall(_ *cobra.Command, _ []string) error {
 		ok()
 	}
 
+	// Restart the tray if it is currently running so it picks up the new binary.
+	exec.Command("pkill", "-f", "lerd tray").Run() //nolint:errcheck
+	if lerdSystemd.IsServiceEnabled("lerd-tray") {
+		_ = lerdSystemd.StartService("lerd-tray")
+	}
+
 	// 9. Shell shims
 	step("Adding shell PATH configuration")
 	if err := addShellShims(); err != nil {
