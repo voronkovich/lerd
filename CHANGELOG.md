@@ -7,6 +7,19 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.1] — 2026-03-19
+
+### Added
+
+- **`lerd db:create [name]`** / **`lerd db create [name]`**: creates a database and a `<name>_testing` database in one command. Name resolution: explicit argument → `DB_DATABASE` from `.env` → project name (site registry or directory). Reports "already exists" instead of failing when a database is present. Available for both MySQL and PostgreSQL.
+- **`lerd db:shell`** / **`lerd db shell`**: opens an interactive MySQL (`mysql -uroot -plerd`) or PostgreSQL (`psql -U postgres`) shell inside the service container, connecting to the project's database automatically. Replaces the need to run `podman exec --tty lerd-mysql mysql …` manually.
+
+### Changed
+
+- **`lerd env` now creates a `<name>_testing` database** alongside the main project database when setting up MySQL or PostgreSQL. Both databases report "already exists" if they were previously created.
+
+---
+
 ## [0.5.0] — 2026-03-19
 
 ### Added
@@ -749,6 +762,7 @@ Initial release.
 
 ---
 
+[0.5.1]: https://github.com/geodro/lerd/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/geodro/lerd/compare/v0.4.3...v0.5.0
 [0.1.53]: https://github.com/geodro/lerd/compare/v0.1.52...v0.1.53
 [0.1.52]: https://github.com/geodro/lerd/compare/v0.1.51...v0.1.52

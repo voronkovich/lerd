@@ -134,10 +134,15 @@ func runEnv(_ *cobra.Command, _ []string) error {
 			if err := ensureServiceRunning(svc); err != nil {
 				fmt.Printf("  [WARN] could not start %s: %v\n", svc, err)
 			} else {
-				if err := createDatabase(svc, dbName); err != nil {
-					fmt.Printf("  [WARN] could not create database %q: %v\n", dbName, err)
-				} else {
-					fmt.Printf("  Created database %q\n", dbName)
+				for _, name := range []string{dbName, dbName + "_testing"} {
+					created, err := createDatabase(svc, name)
+					if err != nil {
+						fmt.Printf("  [WARN] could not create database %q: %v\n", name, err)
+					} else if created {
+						fmt.Printf("  Created database %q\n", name)
+					} else {
+						fmt.Printf("  Database %q already exists\n", name)
+					}
 				}
 			}
 			continue
@@ -175,23 +180,34 @@ func runEnv(_ *cobra.Command, _ []string) error {
 }
 
 // createDatabase creates a database with the given name in the mysql or postgres container.
-func createDatabase(svc, name string) error {
+// Returns (true, nil) if created, (false, nil) if it already existed, or (false, err) on failure.
+func createDatabase(svc, name string) (bool, error) {
 	switch svc {
 	case "mysql":
+		// Query row count before and after to detect whether the DB was created.
+		check := exec.Command("podman", "exec", "lerd-mysql", "mysql", "-uroot", "-plerd",
+			"-sNe", fmt.Sprintf("SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='%s';", name))
+		out, err := check.Output()
+		if err == nil && strings.TrimSpace(string(out)) != "0" {
+			return false, nil
+		}
 		cmd := exec.Command("podman", "exec", "lerd-mysql", "mysql", "-uroot", "-plerd",
 			"-e", fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`;", name))
 		cmd.Stderr = os.Stderr
-		return cmd.Run()
+		return true, cmd.Run()
 	case "postgres":
 		cmd := exec.Command("podman", "exec", "lerd-postgres", "psql", "-U", "postgres",
 			"-c", fmt.Sprintf(`CREATE DATABASE "%s";`, name))
 		out, err := cmd.CombinedOutput()
-		if err != nil && !strings.Contains(string(out), "already exists") {
-			return fmt.Errorf("%s", strings.TrimSpace(string(out)))
+		if err != nil {
+			if strings.Contains(string(out), "already exists") {
+				return false, nil
+			}
+			return false, fmt.Errorf("%s", strings.TrimSpace(string(out)))
 		}
-		return nil
+		return true, nil
 	default:
-		return nil
+		return false, nil
 	}
 }
 

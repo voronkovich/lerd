@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewDbCmd returns the db parent command with import/export subcommands.
+// NewDbCmd returns the db parent command with import/export/create/shell subcommands.
 func NewDbCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "db",
@@ -19,6 +19,8 @@ func NewDbCmd() *cobra.Command {
 	}
 	cmd.AddCommand(newDbImportCmd("import"))
 	cmd.AddCommand(newDbExportCmd("export"))
+	cmd.AddCommand(newDbCreateCmd("create"))
+	cmd.AddCommand(newDbShellCmd("shell"))
 	return cmd
 }
 
@@ -27,6 +29,12 @@ func NewDbImportCmd() *cobra.Command { return newDbImportCmd("db:import") }
 
 // NewDbExportCmd returns the standalone db:export command.
 func NewDbExportCmd() *cobra.Command { return newDbExportCmd("db:export") }
+
+// NewDbCreateCmd returns the standalone db:create command.
+func NewDbCreateCmd() *cobra.Command { return newDbCreateCmd("db:create") }
+
+// NewDbShellCmd returns the standalone db:shell command.
+func NewDbShellCmd() *cobra.Command { return newDbShellCmd("db:shell") }
 
 func newDbImportCmd(use string) *cobra.Command {
 	return &cobra.Command{
@@ -190,4 +198,142 @@ func dbExportCmd(env *dbEnv) (*exec.Cmd, error) {
 	default:
 		return nil, fmt.Errorf("unsupported DB_CONNECTION: %q (supported: mysql, pgsql)", env.connection)
 	}
+}
+
+func newDbCreateCmd(use string) *cobra.Command {
+	return &cobra.Command{
+		Use:   use + " [name]",
+		Short: "Create a database (and testing database) for the current project",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return runDbCreate(args)
+		},
+	}
+}
+
+func runDbCreate(args []string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	env, _ := loadDBEnvLenient(cwd)
+
+	var dbName string
+	switch {
+	case len(args) > 0:
+		dbName = args[0]
+	case env != nil && env.database != "":
+		dbName = env.database
+	default:
+		dbName = projectDBName(cwd)
+	}
+
+	conn := "mysql"
+	if env != nil && env.connection != "" {
+		conn = env.connection
+	}
+	svc := connToService(conn)
+
+	if err := ensureServiceRunning(svc); err != nil {
+		return fmt.Errorf("could not start %s: %w", svc, err)
+	}
+
+	for _, name := range []string{dbName, dbName + "_testing"} {
+		created, err := createDatabase(svc, name)
+		if err != nil {
+			return fmt.Errorf("creating %q: %w", name, err)
+		}
+		if created {
+			fmt.Printf("Created database %q\n", name)
+		} else {
+			fmt.Printf("Database %q already exists\n", name)
+		}
+	}
+	return nil
+}
+
+func newDbShellCmd(use string) *cobra.Command {
+	return &cobra.Command{
+		Use:   use,
+		Short: "Open an interactive database shell for the current project",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return runDbShell()
+		},
+	}
+}
+
+func runDbShell() error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	conn := "mysql"
+	var dbName string
+	if env, _ := loadDBEnvLenient(cwd); env != nil {
+		conn = env.connection
+		dbName = env.database
+	}
+
+	var cmd *exec.Cmd
+	switch conn {
+	case "pgsql", "postgres":
+		cmdArgs := []string{"exec", "--tty", "-i", "lerd-postgres", "psql", "-U", "postgres"}
+		if dbName != "" {
+			cmdArgs = append(cmdArgs, dbName)
+		}
+		cmd = exec.Command("podman", cmdArgs...)
+	default:
+		cmdArgs := []string{"exec", "--tty", "-i", "lerd-mysql", "mysql", "-uroot", "-plerd"}
+		if dbName != "" {
+			cmdArgs = append(cmdArgs, dbName)
+		}
+		cmd = exec.Command("podman", cmdArgs...)
+	}
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// connToService maps a DB_CONNECTION value to the lerd service name.
+func connToService(conn string) string {
+	switch strings.ToLower(conn) {
+	case "pgsql", "postgres":
+		return "postgres"
+	default:
+		return "mysql"
+	}
+}
+
+// loadDBEnvLenient reads DB connection info from .env without requiring DB_DATABASE.
+func loadDBEnvLenient(cwd string) (*dbEnv, error) {
+	envPath := filepath.Join(cwd, ".env")
+	f, err := os.Open(envPath)
+	if err != nil {
+		return nil, fmt.Errorf("no .env found in %s", cwd)
+	}
+	defer f.Close()
+
+	vals := map[string]string{}
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "#") || !strings.Contains(line, "=") {
+			continue
+		}
+		k, v, _ := strings.Cut(line, "=")
+		vals[strings.TrimSpace(k)] = strings.Trim(strings.TrimSpace(v), `"'`)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return &dbEnv{
+		connection: vals["DB_CONNECTION"],
+		database:   vals["DB_DATABASE"],
+		username:   vals["DB_USERNAME"],
+		password:   vals["DB_PASSWORD"],
+	}, nil
 }
