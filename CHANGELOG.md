@@ -7,6 +7,14 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.7] — 2026-03-20
+
+### Fixed
+
+- **Cross-distro tray compatibility** — the main `lerd` binary is now fully static (CGO_ENABLED=0) and carries no shared library dependencies. A separate `lerd-tray` binary (built with CGO + libappindicator3) is shipped alongside it in the release tarball. At runtime `lerd tray` execs `lerd-tray`; if the helper is absent or `libappindicator3.so.1` is missing the tray is silently skipped and everything else keeps working. Fixes startup failure on Fedora and other distros where libappindicator3 is not installed by default.
+
+---
+
 ## [0.5.6] — 2026-03-19
 
 ### Added
