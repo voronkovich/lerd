@@ -28,11 +28,9 @@ builds:
     main: ./cmd/lerd
     binary: lerd
     env:
-      - CGO_ENABLED=1
-      - CC=aarch64-linux-gnu-gcc
-      - PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
+      - CGO_ENABLED=0
     flags:
-      - -tags=legacy_appindicator
+      - -tags=nogui
     goos:
       - linux
     goarch:
