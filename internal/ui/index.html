@@ -109,22 +109,11 @@
             </span>
           </template>
 
-          <template x-if="version.checked && version.hasUpdate && !version.updateDone">
+          <template x-if="version.checked && version.hasUpdate">
             <div class="flex items-center gap-2">
               <span class="text-xs text-yellow-600 dark:text-yellow-400" x-text="version.latest + ' available'"></span>
-              <button
-                @click="runUpdate()"
-                :disabled="version.updating"
-                class="text-xs bg-lerd-red hover:bg-lerd-redhov text-white rounded px-3 py-1 font-medium transition-colors disabled:opacity-50"
-              >
-                <span x-show="!version.updating">Update</span>
-                <span x-show="version.updating">Updating...</span>
-              </button>
+              <span class="text-xs text-gray-500 dark:text-gray-400">— run <code class="font-mono bg-gray-100 dark:bg-white/10 px-1 rounded">lerd update</code> in a terminal</span>
             </div>
-          </template>
-
-          <template x-if="version.updateDone">
-            <span class="text-xs text-emerald-600 dark:text-emerald-500">Updated — restart lerd-ui</span>
           </template>
         </div>
       </div>
@@ -661,8 +650,6 @@ function lerdApp() {
       hasUpdate: false,
       checked: false,
       checking: false,
-      updating: false,
-      updateDone: false,
     },
     _statusInterval: null,
     _sitesInterval: null,
@@ -738,17 +725,6 @@ function lerdApp() {
         this.version.hasUpdate = false;
       } finally {
         this.version.checking = false;
-      }
-    },
-
-    async runUpdate() {
-      this.version.updating = true;
-      try {
-        await fetch('/api/update', { method: 'POST' });
-        this.version.updateDone = true;
-        this.version.hasUpdate = false;
-      } catch (_) {} finally {
-        this.version.updating = false;
       }
     },
 

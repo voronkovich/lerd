@@ -64,6 +64,7 @@ func main() {
 	root.AddCommand(cli.NewXdebugCmd())
 	root.AddCommand(cli.NewShareCmd())
 	root.AddCommand(cli.NewSetupCmd())
+	root.AddCommand(cli.NewTrayCmd())
 	root.AddCommand(newDNSCheckCmd())
 	root.AddCommand(newWatchCmd())
 	root.AddCommand(newServeUICmd())

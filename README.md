@@ -173,7 +173,84 @@ The UI gives you a visual overview of your entire Lerd environment without touch
   - **Click any row** — opens the live PHP-FPM log drawer at the bottom of the screen
 - **Services tab** — shows all available services (MySQL, Redis, PostgreSQL, Meilisearch, MinIO, Mailpit, Soketi) with their current status. Start or stop any service with one click; each panel shows the correct `.env` connection values with a one-click copy button.
 - **System tab** — health check panel for DNS, nginx, PHP-FPM containers, and the autostart toggle.
-- **Updates** — shows the current and latest version, with a one-click update button that runs `lerd update` in the background.
+- **Updates** — shows the current and latest version. When an update is available, a notice with the version number is shown alongside an instruction to run `lerd update` in a terminal (the update requires `sudo` for sysctl/sudoers steps and cannot run in the background).
+
+---
+
+## System Tray
+
+`lerd tray` launches a system tray applet that gives you at-a-glance status and one-click control without opening a browser.
+
+```bash
+lerd tray              # launch (detaches from terminal automatically)
+lerd tray --mono=false # use the red colour icon instead of monochrome white
+```
+
+The tray detaches from the terminal immediately — your shell prompt returns straight away.
+
+### Menu layout
+
+```
+🟢 Running          ← overall status (disabled, informational)
+  🟢 nginx
+  🟢 dns
+─────────────────
+Open Dashboard       ← opens http://127.0.0.1:7073
+Stop Lerd            ← toggles between Start / Stop Lerd
+─────────────────
+── Services ──
+  🟢 mysql           ← click to stop
+  🔴 redis           ← click to start
+─────────────────
+── PHP ──
+  ✔ 8.4              ← current default (click to switch)
+  8.3
+─────────────────
+Autostart at login: ✔ On   ← click to toggle
+Check for update...
+Stop Lerd & Quit     ← runs lerd stop then exits the tray
+```
+
+The menu refreshes every 5 seconds. Clicking a service toggles it on/off. Clicking a PHP version sets it as the global default. "Stop Lerd & Quit" stops the entire environment before closing.
+
+### Autostart
+
+To have the tray start automatically when you log in:
+
+```bash
+lerd autostart tray enable
+lerd autostart tray disable
+```
+
+The tray is also started automatically by `lerd start` if it isn't already running.
+
+### Desktop environment compatibility
+
+The tray uses the **StatusNotifierItem (SNI) / AppIndicator** protocol (DBus-based).
+
+| Environment | Status |
+|---|---|
+| KDE Plasma | Works out of the box |
+| GNOME | Requires the [AppIndicator and KStatusNotifierItem Support](https://extensions.gnome.org/extension/615/appindicator-support/) extension |
+| Sway / Hyprland with waybar | Works with `"tray"` module in waybar config |
+| i3 with i3bar | Requires [snixembed](https://git.sr.ht/~yerlan/snixembed) to bridge SNI → XEmbed |
+| XFCE / LXQt | Works out of the box |
+
+### Build requirements
+
+The tray uses CGO and requires `libappindicator3` at build time:
+
+| Distro | Package |
+|---|---|
+| Arch | `libappindicator-gtk3` |
+| Debian / Ubuntu | `libappindicator3-dev` |
+| Fedora | `libappindicator-gtk3-devel` |
+
+For headless / CI builds without AppIndicator:
+
+```bash
+make build-nogui   # produces ./build/lerd-nogui — lerd tray returns an error
+```
 
 ---
 
@@ -191,6 +268,9 @@ The UI gives you a visual overview of your entire Lerd environment without touch
 | `lerd uninstall --force` | Same, skipping all confirmation prompts |
 | `lerd autostart enable` | Start Lerd automatically on every login |
 | `lerd autostart disable` | Disable autostart on login |
+| `lerd tray` | Launch the system tray applet (detaches from terminal) |
+| `lerd autostart tray enable` | Start the tray applet automatically on graphical login |
+| `lerd autostart tray disable` | Disable tray autostart |
 | `lerd dns:check` | Verify that `*.test` resolves to `127.0.0.1` |
 | `lerd status` | Health summary: DNS, nginx, PHP-FPM containers, services, cert expiry |
 | `lerd logs [-f] [target]` | Show logs for the current project's FPM container, `nginx`, a service name, or a PHP version |
@@ -649,17 +729,20 @@ Browser → 127.0.0.1:80 → lerd-nginx
 
 ## Building
 
+The default build requires CGO and `libappindicator3` for the system tray (see [Build requirements](#build-requirements) above).
+
 ```bash
-make build      # → ./build/lerd
-make install    # → ~/.local/bin/lerd
+make build      # → ./build/lerd  (CGO, with tray support)
+make build-nogui # → ./build/lerd-nogui  (no CGO, no tray)
+make install    # build + install to ~/.local/bin/lerd
 make test       # go test ./...
 make clean      # remove ./build/
 ```
 
-Cross-compile for arm64:
+Cross-compile for arm64 (without tray):
 
 ```bash
-GOARCH=arm64 GOOS=linux go build -o ./build/lerd-arm64 ./cmd/lerd
+CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -tags nogui -o ./build/lerd-arm64 ./cmd/lerd
 ```
 
 ---

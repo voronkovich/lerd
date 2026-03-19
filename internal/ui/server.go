@@ -112,9 +112,6 @@ func Start(currentVersion string) error {
 	mux.HandleFunc("/api/version", withCORS(func(w http.ResponseWriter, r *http.Request) {
 		handleVersion(w, r, currentVersion)
 	}))
-	mux.HandleFunc("/api/update", withCORS(func(w http.ResponseWriter, r *http.Request) {
-		handleUpdate(w, r, currentVersion)
-	}))
 	mux.HandleFunc("/api/php-versions", withCORS(handlePHPVersions))
 	mux.HandleFunc("/api/node-versions", withCORS(handleNodeVersions))
 	mux.HandleFunc("/api/node-versions/install", withCORS(handleInstallNodeVersion))
@@ -153,9 +150,10 @@ func writeJSON(w http.ResponseWriter, v any) {
 
 // StatusResponse is the response for GET /api/status.
 type StatusResponse struct {
-	DNS     DNSStatus    `json:"dns"`
-	Nginx   ServiceCheck `json:"nginx"`
-	PHPFPMs []PHPStatus  `json:"php_fpms"`
+	DNS        DNSStatus    `json:"dns"`
+	Nginx      ServiceCheck `json:"nginx"`
+	PHPFPMs    []PHPStatus  `json:"php_fpms"`
+	PHPDefault string       `json:"php_default"`
 }
 
 type DNSStatus struct {
@@ -192,10 +190,15 @@ func handleStatus(w http.ResponseWriter, _ *http.Request) {
 		phpStatuses = append(phpStatuses, PHPStatus{Version: v, Running: running, XdebugEnabled: xdebugEnabled})
 	}
 
+	phpDefault := ""
+	if cfg != nil {
+		phpDefault = cfg.PHP.DefaultVersion
+	}
 	writeJSON(w, StatusResponse{
-		DNS:     DNSStatus{OK: dnsOK, TLD: tld},
-		Nginx:   ServiceCheck{Running: nginxRunning},
-		PHPFPMs: phpStatuses,
+		DNS:        DNSStatus{OK: dnsOK, TLD: tld},
+		Nginx:      ServiceCheck{Running: nginxRunning},
+		PHPFPMs:    phpStatuses,
+		PHPDefault: phpDefault,
 	})
 }
 
@@ -455,11 +458,6 @@ func fetchLatestRelease() string {
 	return payload.TagName
 }
 
-// UpdateResponse is the response for POST /api/update.
-type UpdateResponse struct {
-	OK     bool   `json:"ok"`
-	Output string `json:"output"`
-}
 
 func handlePHPVersions(w http.ResponseWriter, _ *http.Request) {
 	versions, _ := phpPkg.ListInstalled()
@@ -831,26 +829,3 @@ func handleXdebugAction(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"ok": true, "xdebug_enabled": enable})
 }
 
-func handleUpdate(w http.ResponseWriter, r *http.Request, _ string) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	exe, err := os.Executable()
-	if err != nil {
-		writeJSON(w, UpdateResponse{OK: false, Output: err.Error()})
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, exe, "update")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		writeJSON(w, UpdateResponse{OK: false, Output: string(out)})
-		return
-	}
-	writeJSON(w, UpdateResponse{OK: true, Output: string(out)})
-}

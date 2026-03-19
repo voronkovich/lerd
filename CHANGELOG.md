@@ -7,6 +7,33 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0] — 2026-03-19
+
+### Added
+
+- **System tray applet** (`lerd tray`): a desktop tray icon for KDE, GNOME (with AppIndicator extension), waybar, and other SNI-compatible environments. The applet detaches from the terminal automatically and polls `http://127.0.0.1:7073` every 5 seconds. Menu includes:
+  - 🟢/🔴 overall running status with per-component nginx and DNS indicators
+  - **Open Dashboard** — opens the web UI
+  - **Start / Stop Lerd** toggle
+  - **Services section** — lists all active services with 🟢/🔴 status; clicking a service starts or stops it
+  - **PHP section** — lists all installed PHP versions; current global default is marked ✔; clicking switches the global default via `lerd use`
+  - **Autostart at login** toggle — enables or disables `lerd-autostart.service`
+  - **Check for update** — polls GitHub; if a newer version is found the item changes to "⬆ Update to vX.Y.Z" and clicking opens a terminal with a confirmation prompt before running `lerd update`
+  - **Stop Lerd & Quit** — runs `lerd stop` then exits the tray
+- **`--mono` flag** for `lerd tray`: defaults to `true` (white monochrome icon); pass `--mono=false` for the red colour icon
+- **`lerd autostart tray enable/disable`**: registers/removes `lerd-tray.service` as a user systemd unit that starts the tray on graphical login
+- **`lerd start` starts the tray**: if `lerd-tray.service` is enabled it is started via systemd; otherwise, if no tray process is already running, `lerd tray` is launched directly
+- **`make build-nogui`**: headless build (`CGO_ENABLED=0 -tags nogui`) for CI or servers; `lerd tray` returns a clear error instead of failing to link
+
+### Changed
+
+- **Build now requires CGO and `libappindicator3`** (`libappindicator-gtk3` on Arch, `libappindicator3-dev` on Debian/Ubuntu, `libappindicator-gtk3-devel` on Fedora). The `make build` target sets `CGO_ENABLED=1 -tags legacy_appindicator` automatically.
+- **`lerd-autostart.service`** now declares `After=graphical-session.target` so the tray (which needs a display) is available when `lerd start` runs at login.
+- **Web UI update flow**: the "Update" button has been removed. When an update is available the UI now shows `vX.Y.Z available — run lerd update in a terminal`. The `/api/update` endpoint has been removed. This avoids silent failures caused by `sudo` steps in `lerd install` that require a TTY.
+- **`/api/status`** now includes a `php_default` field with the global default PHP version, used by the tray to mark the active version with ✔.
+
+---
+
 ## [0.4.3] — 2026-03-19
 
 ### Fixed
@@ -722,6 +749,7 @@ Initial release.
 
 ---
 
+[0.5.0]: https://github.com/geodro/lerd/compare/v0.4.3...v0.5.0
 [0.1.53]: https://github.com/geodro/lerd/compare/v0.1.52...v0.1.53
 [0.1.52]: https://github.com/geodro/lerd/compare/v0.1.51...v0.1.52
 [0.1.51]: https://github.com/geodro/lerd/compare/v0.1.50...v0.1.51

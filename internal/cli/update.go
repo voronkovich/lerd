@@ -3,14 +3,13 @@ package cli
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/geodro/lerd/internal/podman"
+	lerdUpdate "github.com/geodro/lerd/internal/update"
 	"github.com/spf13/cobra"
 )
 
@@ -41,8 +40,8 @@ func runUpdate(currentVersion string) error {
 		return fmt.Errorf("could not fetch latest version: %w", err)
 	}
 
-	cur := stripV(currentVersion)
-	lat := stripV(latest)
+	cur := lerdUpdate.StripV(currentVersion)
+	lat := lerdUpdate.StripV(latest)
 
 	if cur == lat {
 		fmt.Printf("  Already on latest: v%s\n", lat)
@@ -103,41 +102,7 @@ func runUpdate(currentVersion string) error {
 }
 
 func fetchLatestVersion() (string, error) {
-	// Use the HTML releases/latest redirect — not rate-limited unlike the API.
-	url := githubReleasesBase + "/latest"
-
-	client := &http.Client{
-		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
-			return http.ErrUseLastResponse // don't follow; we want the Location header
-		},
-	}
-	req, err := http.NewRequest(http.MethodGet, url, nil) //nolint:noctx
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("User-Agent", "lerd-cli")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	resp.Body.Close()
-
-	if resp.StatusCode != http.StatusFound && resp.StatusCode != http.StatusMovedPermanently {
-		return "", fmt.Errorf("unexpected status from %s: HTTP %d", url, resp.StatusCode)
-	}
-
-	location := resp.Header.Get("Location")
-	if location == "" {
-		return "", fmt.Errorf("no Location header in redirect from %s", url)
-	}
-
-	// Location: .../releases/tag/v0.1.37
-	parts := strings.Split(location, "/tag/")
-	if len(parts) != 2 || parts[1] == "" {
-		return "", fmt.Errorf("unexpected release URL format: %s", location)
-	}
-	return parts[1], nil
+	return lerdUpdate.FetchLatestVersion()
 }
 
 // downloadReleaseBinary downloads and extracts the release archive for the
@@ -204,9 +169,4 @@ func copyFile(src, dest string, mode os.FileMode) error {
 	return err
 }
 
-func stripV(v string) string {
-	if len(v) > 0 && v[0] == 'v' {
-		return v[1:]
-	}
-	return v
-}
+func stripV(v string) string { return lerdUpdate.StripV(v) }

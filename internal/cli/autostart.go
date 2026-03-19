@@ -18,6 +18,7 @@ func NewAutostartCmd() *cobra.Command {
 	}
 	cmd.AddCommand(newAutostartEnableCmd())
 	cmd.AddCommand(newAutostartDisableCmd())
+	cmd.AddCommand(newAutostartTrayCmd())
 	return cmd
 }
 
@@ -56,6 +57,55 @@ func newAutostartDisableCmd() *cobra.Command {
 				return fmt.Errorf("removing autostart service file: %w", err)
 			}
 			fmt.Println("Autostart disabled — lerd will not start automatically on login.")
+			return nil
+		},
+	}
+}
+
+func newAutostartTrayCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "tray",
+		Short: "Manage autostart of the system tray applet",
+	}
+	cmd.AddCommand(newAutostartTrayEnableCmd())
+	cmd.AddCommand(newAutostartTrayDisableCmd())
+	return cmd
+}
+
+func newAutostartTrayEnableCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "enable",
+		Short: "Enable lerd tray autostart on login",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			content, err := lerdSystemd.GetUnit("lerd-tray")
+			if err != nil {
+				return err
+			}
+			if err := lerdSystemd.WriteService("lerd-tray", content); err != nil {
+				return fmt.Errorf("writing tray service: %w", err)
+			}
+			if err := lerdSystemd.EnableService("lerd-tray"); err != nil {
+				return fmt.Errorf("enabling tray service: %w", err)
+			}
+			fmt.Println("Tray autostart enabled — lerd tray will start automatically on login.")
+			return nil
+		},
+	}
+}
+
+func newAutostartTrayDisableCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "disable",
+		Short: "Disable lerd tray autostart on login",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			if err := lerdSystemd.DisableService("lerd-tray"); err != nil {
+				return fmt.Errorf("disabling tray service: %w", err)
+			}
+			unitPath := filepath.Join(config.SystemdUserDir(), "lerd-tray.service")
+			if err := os.Remove(unitPath); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("removing tray service file: %w", err)
+			}
+			fmt.Println("Tray autostart disabled.")
 			return nil
 		},
 	}

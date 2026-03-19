@@ -1,0 +1,14 @@
+[Unit]
+Description=Lerd System Tray Applet
+After=graphical-session.target lerd-ui.service
+Wants=lerd-ui.service
+
+[Service]
+ExecStart=%h/.local/bin/lerd tray
+Restart=on-failure
+RestartSec=5
+Environment=DISPLAY=:0
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+
+[Install]
+WantedBy=graphical-session.target

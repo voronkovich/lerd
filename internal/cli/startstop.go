@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -9,6 +11,7 @@ import (
 	"github.com/geodro/lerd/internal/dns"
 	phpPkg "github.com/geodro/lerd/internal/php"
 	"github.com/geodro/lerd/internal/podman"
+	lerdSystemd "github.com/geodro/lerd/internal/systemd"
 	"github.com/spf13/cobra"
 )
 
@@ -114,7 +117,35 @@ func runStart(_ *cobra.Command, _ []string) error {
 		fmt.Printf("  WARN: DNS resolver config: %v\n", err)
 	}
 
+	// Start the tray applet if it is not already running.
+	// Prefer the systemd service when enabled; otherwise launch directly.
+	if lerdSystemd.IsServiceEnabled("lerd-tray") {
+		fmt.Print("  --> lerd-tray ... ")
+		if err := lerdSystemd.StartService("lerd-tray"); err != nil {
+			fmt.Printf("WARN (%v)\n", err)
+		} else {
+			fmt.Println("OK")
+		}
+	} else if !trayRunning() {
+		fmt.Print("  --> lerd-tray ... ")
+		exe, err := os.Executable()
+		if err == nil {
+			err = exec.Command(exe, "tray").Start()
+		}
+		if err != nil {
+			fmt.Printf("WARN (%v)\n", err)
+		} else {
+			fmt.Println("OK")
+		}
+	}
+
 	return nil
+}
+
+// trayRunning returns true if a lerd tray daemon process is already running.
+func trayRunning() bool {
+	out, err := exec.Command("pgrep", "-f", "lerd tray").Output()
+	return err == nil && len(strings.TrimSpace(string(out))) > 0
 }
 
 func runStop(_ *cobra.Command, _ []string) error {
