@@ -17,6 +17,7 @@ func NewNodeCmd() *cobra.Command {
 		Use:                "node [args...]",
 		Short:              "Run node using the project's version via fnm",
 		DisableFlagParsing: true,
+		SilenceUsage:       true,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return runWithFnm("node", args)
 		},
@@ -29,6 +30,7 @@ func NewNpmCmd() *cobra.Command {
 		Use:                "npm [args...]",
 		Short:              "Run npm using the project's node version via fnm",
 		DisableFlagParsing: true,
+		SilenceUsage:       true,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return runWithFnm("npm", args)
 		},
@@ -41,6 +43,7 @@ func NewNpxCmd() *cobra.Command {
 		Use:                "npx [args...]",
 		Short:              "Run npx using the project's node version via fnm",
 		DisableFlagParsing: true,
+		SilenceUsage:       true,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return runWithFnm("npx", args)
 		},
@@ -75,5 +78,11 @@ func runWithFnm(bin string, args []string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		if exit, ok := err.(*exec.ExitError); ok {
+			os.Exit(exit.ExitCode())
+		}
+		return err
+	}
+	return nil
 }

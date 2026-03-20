@@ -18,6 +18,7 @@ func NewArtisanCmd() *cobra.Command {
 		Short:              "Run php artisan in the project's container",
 		Example:            "  lerd artisan migrate\n  lerd artisan tinker\n  lerd artisan make:controller Foo",
 		DisableFlagParsing: true,
+		SilenceUsage:       true,
 		RunE:               runArtisan,
 	}
 }
@@ -47,5 +48,11 @@ func runArtisan(_ *cobra.Command, args []string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		if exit, ok := err.(*exec.ExitError); ok {
+			os.Exit(exit.ExitCode())
+		}
+		return err
+	}
+	return nil
 }

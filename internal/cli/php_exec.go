@@ -18,6 +18,7 @@ func NewPhpCmd() *cobra.Command {
 		Use:                "php [args...]",
 		Short:              "Run PHP in the project's container (e.g. lerd php artisan migrate)",
 		DisableFlagParsing: true,
+		SilenceUsage:       true,
 		RunE:               runPhp,
 	}
 }
@@ -65,5 +66,11 @@ func runPhp(_ *cobra.Command, args []string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		if exit, ok := err.(*exec.ExitError); ok {
+			os.Exit(exit.ExitCode())
+		}
+		return err
+	}
+	return nil
 }

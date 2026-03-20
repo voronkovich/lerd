@@ -7,6 +7,18 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.12] — 2026-03-20
+
+### Added
+
+- **MCP: `db_export`** — export the project database to a SQL dump file (defaults to `<database>.sql` in the project root); reads connection details from `.env`
+
+### Fixed
+
+- **`lerd artisan` / `lerd php` / `lerd node` / `lerd npm` / `lerd npx`** — lerd usage/help text and "Error: exit status N" no longer appear when the subprocess exits with a non-zero code (e.g. failed tests); only the subprocess output is shown and the original exit code is propagated to the shell
+
+---
+
 ## [0.5.11] — 2026-03-20
 
 ### Added
