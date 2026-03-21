@@ -20,8 +20,10 @@ Linked: my-app -> my-app.test (PHP 8.4, Node 24)
   ◯ lerd mcp:inject
   ◉ php artisan migrate
   ◯ php artisan db:seed
+  ◉ php artisan storage:link
   ◉ npm run build
   ◯ lerd secure
+  ◉ queue:start
   ◉ lerd open
 ```
 
@@ -39,8 +41,10 @@ Linked: my-app -> my-app.test (PHP 8.4, Node 24)
 | `lerd mcp:inject` | - [ ] off | opt-in |
 | `php artisan migrate` | - [x] on | always |
 | `php artisan db:seed` | - [ ] off | opt-in |
+| `php artisan storage:link` | - [x] on | only if `storage/app/public` is not yet symlinked |
 | `npm run build` | - [x] on | only if `package.json` exists |
 | `lerd secure` | - [ ] off | opt-in |
+| `queue:start` | - [x] on | only if `QUEUE_CONNECTION=redis` is set in `.env` or `.env.example` |
 | `lerd open` | - [x] on | always |
 
 The asset build step detects the right command from `package.json` — it looks for `build`, `production`, or `prod` scripts in priority order.

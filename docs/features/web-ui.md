@@ -24,12 +24,15 @@ Lists all registered projects with their domain, path, PHP version, Node version
 - **HTTPS toggle** — enable or disable TLS with one click; updates `APP_URL` in `.env` automatically
 - **PHP / Node dropdowns** — change the version per site; writes `.php-version` / `.node-version` into the project and regenerates the nginx vhost on the fly
 - **Queue toggle** — start or stop the Laravel queue worker for a site; amber when running; click the **logs** link next to the toggle to open the live log drawer for that worker
+- **Schedule toggle** — start or stop the Laravel task scheduler for a site; shows whether `schedule:work` is running with a live log link
+- **Reverb toggle** — start or stop the Laravel Reverb WebSocket server for a site; shows running state with a live log link
+- **Stripe toggle** — start or stop the Stripe webhook listener for a site
 - **Unlink button** — remove a site from nginx without touching the terminal; for parked sites the directory is left on disk (run `lerd link` to re-register it)
 - **Click any row** — opens the live PHP-FPM log drawer at the bottom of the screen
 
 ## Services tab
 
-Shows all available services (MySQL, Redis, PostgreSQL, Meilisearch, MinIO, Mailpit, Soketi) with their current status. Start or stop any service with one click; each panel shows the correct `.env` connection values with a one-click copy button.
+Shows all available services (MySQL, Redis, PostgreSQL, Meilisearch, MinIO, Mailpit) with their current status. Start or stop any service with one click; each panel shows the correct `.env` connection values with a one-click copy button.
 
 ## System tab
 

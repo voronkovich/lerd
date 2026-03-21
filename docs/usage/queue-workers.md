@@ -45,6 +45,12 @@ lerd queue:start --queue=emails,default --tries=5 --timeout=120
 
 ---
 
+## Auto-restart on config changes
+
+The lerd watcher daemon monitors `.env`, `composer.json`, `composer.lock`, and `.php-version` for every registered site. When any of those files change, it automatically signals `php artisan queue:restart` inside the PHP-FPM container (debounced). This ensures queue workers reload after deploys or PHP version changes without manual intervention.
+
+---
+
 ## Web UI control
 
 Queue workers are controllable from the **Sites tab** in the web UI. The amber toggle starts or stops the worker. When a worker is running, a **Queue** log tab appears in the site detail panel alongside PHP-FPM. The amber dot next to the site in the sidebar indicates the worker is active.

@@ -94,12 +94,32 @@
 | `lerd queue:start` | Start a queue worker for the current project |
 | `lerd queue:stop` | Stop the queue worker for the current project |
 
+## Reverb
+
+| Command | Description |
+|---|---|
+| `lerd reverb:start` | Start the Laravel Reverb WebSocket server for the current project as a persistent background service |
+| `lerd reverb:stop` | Stop the Reverb server |
+
+## Schedule
+
+| Command | Description |
+|---|---|
+| `lerd schedule:start` | Start the Laravel task scheduler (`schedule:work`) for the current project as a persistent background service |
+| `lerd schedule:stop` | Stop the task scheduler |
+
 ## Stripe
 
 | Command | Description |
 |---|---|
 | `lerd stripe:listen` | Start a Stripe webhook listener for the current project as a background service |
 | `lerd stripe:listen stop` | Stop the Stripe webhook listener |
+
+## Dashboard
+
+| Command | Description |
+|---|---|
+| `lerd dashboard` | Open the Lerd dashboard (`http://127.0.0.1:7073`) in the default browser |
 
 ## Shell completion
 

@@ -18,6 +18,7 @@ lerd env
 5. **Starts any referenced service** that is not already running
 6. **Sets `APP_URL`** to the project's registered `.test` domain (`https://` if secured, `http://` otherwise)
 7. **Generates `APP_KEY`** via `php artisan key:generate` if the key is missing or empty
+8. **Generates `REVERB_*` values** — if `BROADCAST_CONNECTION=reverb` is detected, generates `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET`, `REVERB_HOST`, `REVERB_PORT`, and `REVERB_SCHEME` using random secure values for secrets
 
 ---
 
