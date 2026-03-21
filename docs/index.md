@@ -29,6 +29,30 @@ Lerd bundles Nginx, PHP-FPM, and optional services (MySQL, Redis, PostgreSQL, Me
 
 ---
 
+## Lerd vs ddev
+
+[ddev](https://ddev.com/) is a popular open-source local development tool that spins up per-project Docker containers with a shared Traefik router. It supports many frameworks (Laravel, WordPress, Drupal, etc.) and runs on macOS, Windows, and Linux. Lerd is narrower in scope — Laravel-focused, Podman-native, shared infrastructure — closer to the Herd model.
+
+|  | Lerd | ddev |
+|---|---|---|
+| Container runtime | Rootless Podman | Docker (or Orbstack / Colima) |
+| Architecture | Shared Nginx + PHP-FPM across all projects | Per-project containers + shared Traefik router |
+| Services (MySQL, Redis…) | One shared instance | Per-project (isolated by default) |
+| Domains | `.test` — automatic, zero config | `.ddev.site` or custom — automatic via Traefik |
+| HTTPS | `lerd secure` → trusted cert instantly | Built-in via mkcert |
+| RAM with 5 projects running | ~200 MB | ~500 MB–1 GB (5× app containers + router) |
+| Requires changes to project files | No | Yes — needs `.ddev/config.yaml` committed |
+| Works on legacy / client repos | Yes — just `lerd link` | Only if you can add ddev config |
+| Framework support | Laravel | Laravel, WordPress, Drupal, and many more |
+| Defined in code (infra-as-code) | No | Yes |
+| Team parity (all OS) | Linux only | macOS, Windows, Linux |
+
+**Choose ddev when:** your team is cross-platform, you work with multiple frameworks (not just Laravel), you want per-project service isolation, or your workflow already depends on Docker.
+
+**Choose Lerd when:** you're on Linux, want a zero-config shared stack you can drop any project into without touching its files, prefer rootless Podman, or want the lightweight Herd-like experience.
+
+---
+
 ## Next steps
 
 - [Requirements](getting-started/requirements.md) — what you need before installing
