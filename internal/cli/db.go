@@ -37,26 +37,30 @@ func NewDbCreateCmd() *cobra.Command { return newDbCreateCmd("db:create") }
 func NewDbShellCmd() *cobra.Command { return newDbShellCmd("db:shell") }
 
 func newDbImportCmd(use string) *cobra.Command {
-	return &cobra.Command{
+	var database string
+	cmd := &cobra.Command{
 		Use:   use + " <file.sql>",
-		Short: "Import a SQL dump into the current site's database",
+		Short: "Import a SQL dump into a database (default: site DB from .env)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return runDbImport(args[0])
+			return runDbImport(args[0], database)
 		},
 	}
+	cmd.Flags().StringVarP(&database, "database", "d", "", "Database name (default: DB_DATABASE from .env)")
+	return cmd
 }
 
 func newDbExportCmd(use string) *cobra.Command {
-	var output string
+	var output, database string
 	cmd := &cobra.Command{
 		Use:   use,
-		Short: "Export the current site's database to a SQL dump",
+		Short: "Export a database to a SQL dump (default: site DB from .env)",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runDbExport(output)
+			return runDbExport(output, database)
 		},
 	}
 	cmd.Flags().StringVarP(&output, "output", "o", "", "Output file (default: <database>.sql)")
+	cmd.Flags().StringVarP(&database, "database", "d", "", "Database name (default: DB_DATABASE from .env)")
 	return cmd
 }
 
@@ -105,7 +109,7 @@ func loadDBEnv(cwd string) (*dbEnv, error) {
 	}, nil
 }
 
-func runDbImport(file string) error {
+func runDbImport(file, database string) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -113,6 +117,9 @@ func runDbImport(file string) error {
 	env, err := loadDBEnv(cwd)
 	if err != nil {
 		return err
+	}
+	if database != "" {
+		env.database = database
 	}
 
 	f, err := os.Open(file)
@@ -150,7 +157,7 @@ func dbImportCmd(env *dbEnv) (*exec.Cmd, error) {
 	}
 }
 
-func runDbExport(output string) error {
+func runDbExport(output, database string) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -158,6 +165,9 @@ func runDbExport(output string) error {
 	env, err := loadDBEnv(cwd)
 	if err != nil {
 		return err
+	}
+	if database != "" {
+		env.database = database
 	}
 
 	if output == "" {

@@ -530,13 +530,17 @@ func toolList() []mcpTool {
 		},
 		{
 			Name:        "db_export",
-			Description: "Export the project's database to a SQL dump file. Reads connection details from the project .env.",
+			Description: "Export a database to a SQL dump file. Reads connection details from the project .env.",
 			InputSchema: mcpSchema{
 				Type: "object",
 				Properties: map[string]mcpProp{
 					"path": {
 						Type:        "string",
 						Description: "Absolute path to the Laravel project root. Defaults to LERD_SITE_PATH when omitted.",
+					},
+					"database": {
+						Type:        "string",
+						Description: "Database name to export (defaults to DB_DATABASE from .env)",
 					},
 					"output": {
 						Type:        "string",
@@ -2046,6 +2050,10 @@ func execDBExport(args map[string]any) (any, *rpcError) {
 	env, err := readDBEnv(projectPath)
 	if err != nil {
 		return toolErr(err.Error()), nil
+	}
+
+	if db := strArg(args, "database"); db != "" {
+		env.database = db
 	}
 
 	output := strArg(args, "output")

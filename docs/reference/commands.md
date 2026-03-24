@@ -89,8 +89,8 @@
 | Command | Description |
 |---|---|
 | `lerd db:create [name]` | Create a database and a `<name>_testing` database |
-| `lerd db:import <file.sql>` | Import a SQL dump into the current site's database |
-| `lerd db:export [-o file.sql]` | Export the current site's database |
+| `lerd db:import [-d name] <file.sql>` | Import a SQL dump (defaults to site DB from `.env`) |
+| `lerd db:export [-d name] [-o file.sql]` | Export a database to a SQL dump (defaults to site DB from `.env`) |
 | `lerd db:shell` | Open an interactive MySQL or PostgreSQL shell |
 
 ## Queue workers

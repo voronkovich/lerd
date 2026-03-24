@@ -7,12 +7,12 @@ Database shortcuts read `DB_CONNECTION`, `DB_DATABASE`, `DB_USERNAME`, and `DB_P
 | Command | Description |
 |---|---|
 | `lerd db:create [name]` | Create a database and a `<name>_testing` database for the current project |
-| `lerd db:import <file.sql>` | Import a SQL dump into the current site's database |
-| `lerd db:export [-o file.sql]` | Export the current site's database (defaults to `<database>.sql`) |
+| `lerd db:import [-d name] <file.sql>` | Import a SQL dump (defaults to site DB from `.env`) |
+| `lerd db:export [-d name] [-o file.sql]` | Export a database to a SQL dump (defaults to site DB from `.env`) |
 | `lerd db:shell` | Open an interactive MySQL or PostgreSQL shell for the current project |
 | `lerd db create [name]` | Same as `db:create` (subcommand form) |
-| `lerd db import <file.sql>` | Same as `db:import` (subcommand form) |
-| `lerd db export` | Same as `db:export` (subcommand form) |
+| `lerd db import [-d name] <file.sql>` | Same as `db:import` (subcommand form) |
+| `lerd db export [-d name]` | Same as `db:export` (subcommand form) |
 | `lerd db shell` | Same as `db:shell` (subcommand form) |
 
 ---

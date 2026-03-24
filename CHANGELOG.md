@@ -24,6 +24,8 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **`db:import` and `db:export` accept a `-d`/`--database` flag** — both commands now accept an optional `--database` / `-d` flag to target a specific database. When omitted the database name falls back to `DB_DATABASE` from the project's `.env` as before. The MCP `db_export` tool gains the same optional `database` argument.
+
 - **`lerd secure` / `lerd unsecure` restart the Stripe listener** — if a `lerd stripe:listen` service is active when HTTPS is toggled, it is automatically restarted with the updated forwarding URL so `--forward-to` stays in sync with the site's scheme.
 
 - **MinIO: per-site bucket created by `lerd env`** — when MinIO is detected, `lerd env` now creates a bucket named after the site handle (e.g. `my_project`), sets it to public access, and writes `AWS_BUCKET=<site>` and `AWS_URL=http://localhost:9000/<site>` into `.env`. Previously `AWS_BUCKET` was hardcoded to `lerd` and `AWS_URL` had no bucket path.

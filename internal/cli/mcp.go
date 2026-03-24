@@ -412,8 +412,9 @@ Arguments for ` + bt + `stripe_listen` + bt + `:
 - ` + bt + `webhook_path` + bt + ` (optional): webhook route path (default: ` + bt + `"/stripe/webhook"` + bt + `)
 
 ### ` + bt + `db_export` + bt + `
-Export the project's database to a SQL dump file. Arguments:
+Export a database to a SQL dump file. Arguments:
 - ` + bt + `path` + bt + ` (optional): absolute path to the Laravel project root — defaults to ` + bt + `LERD_SITE_PATH` + bt + ` set by ` + bt + `mcp:inject` + bt + `
+- ` + bt + `database` + bt + ` (optional): database name to export (defaults to ` + bt + `DB_DATABASE` + bt + ` from ` + bt + `.env` + bt + `)
 - ` + bt + `output` + bt + ` (optional): output file path (defaults to ` + bt + `<database>.sql` + bt + ` in the project root)
 
 ### ` + bt + `logs` + bt + `
@@ -582,7 +583,7 @@ This project runs on **lerd**, a Podman-based Laravel development environment. T
 | ` + bt + `service_add` + bt + ` | Register a new custom OCI service (MongoDB, RabbitMQ, …) |
 | ` + bt + `service_remove` + bt + ` | Stop and deregister a custom service |
 | ` + bt + `service_env` + bt + ` | Return the recommended ` + bt + `.env` + bt + ` connection variables for a service |
-| ` + bt + `db_export` + bt + ` | Export the project database to a SQL dump file |
+| ` + bt + `db_export` + bt + ` | Export a database to a SQL dump file (defaults to site DB from ` + bt + `.env` + bt + `) |
 | ` + bt + `queue_start` + bt + ` | Start the queue worker for a site (any framework with a queue worker) |
 | ` + bt + `queue_stop` + bt + ` | Stop the queue worker |
 | ` + bt + `reverb_start` + bt + ` | Start the Reverb WebSocket server for a site |
