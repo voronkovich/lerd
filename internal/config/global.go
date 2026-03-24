@@ -9,9 +9,10 @@ import (
 
 // ServiceConfig holds configuration for an optional service.
 type ServiceConfig struct {
-	Enabled bool   `yaml:"enabled" mapstructure:"enabled"`
-	Image   string `yaml:"image"   mapstructure:"image"`
-	Port    int    `yaml:"port"    mapstructure:"port"`
+	Enabled    bool     `yaml:"enabled"      mapstructure:"enabled"`
+	Image      string   `yaml:"image"        mapstructure:"image"`
+	Port       int      `yaml:"port"         mapstructure:"port"`
+	ExtraPorts []string `yaml:"extra_ports"  mapstructure:"extra_ports"`
 }
 
 // GlobalConfig is the top-level lerd configuration.

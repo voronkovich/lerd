@@ -276,6 +276,20 @@ Built-in names: ` + bt + `mysql` + bt + `, ` + bt + `redis` + bt + `, ` + bt + `
 | meilisearch | ` + bt + `lerd-meilisearch:7700` + bt + ` | |
 | minio | ` + bt + `lerd-minio:9000` + bt + ` | ` + bt + `AWS_USE_PATH_STYLE_ENDPOINT=true` + bt + ` |
 
+### ` + bt + `service_expose` + bt + `
+Add or remove an extra published port on a built-in service. The mapping is persisted in ` + bt + `~/.config/lerd/config.yaml` + bt + ` and applied on every start. The service is restarted automatically if running.
+
+Arguments:
+- ` + bt + `name` + bt + ` (required): built-in service name (` + bt + `mysql` + bt + `, ` + bt + `redis` + bt + `, ` + bt + `postgres` + bt + `, ` + bt + `meilisearch` + bt + `, ` + bt + `minio` + bt + `, ` + bt + `mailpit` + bt + `)
+- ` + bt + `port` + bt + ` (required): mapping as ` + bt + `"host:container"` + bt + `, e.g. ` + bt + `"13306:3306"` + bt + `
+- ` + bt + `remove` + bt + ` (optional): set to ` + bt + `true` + bt + ` to remove the mapping instead of adding it
+
+Examples:
+` + "```" + `
+service_expose(name: "mysql", port: "13306:3306")
+service_expose(name: "mysql", port: "13306:3306", remove: true)
+` + "```" + `
+
 ### ` + bt + `service_add` + bt + ` / ` + bt + `service_remove` + bt + `
 Register or remove a custom OCI-based service. Arguments for ` + bt + `service_add` + bt + `:
 - ` + bt + `name` + bt + ` (required): slug, e.g. ` + bt + `"mongodb"` + bt + `
@@ -582,6 +596,7 @@ This project runs on **lerd**, a Podman-based Laravel development environment. T
 | ` + bt + `service_stop` + bt + ` | Stop a service |
 | ` + bt + `service_add` + bt + ` | Register a new custom OCI service (MongoDB, RabbitMQ, …) |
 | ` + bt + `service_remove` + bt + ` | Stop and deregister a custom service |
+| ` + bt + `service_expose` + bt + ` | Add or remove an extra published port on a built-in service (persisted) |
 | ` + bt + `service_env` + bt + ` | Return the recommended ` + bt + `.env` + bt + ` connection variables for a service |
 | ` + bt + `db_export` + bt + ` | Export a database to a SQL dump file (defaults to site DB from ` + bt + `.env` + bt + `) |
 | ` + bt + `queue_start` + bt + ` | Start the queue worker for a site (any framework with a queue worker) |

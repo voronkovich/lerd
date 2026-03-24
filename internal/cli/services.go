@@ -91,6 +91,7 @@ func NewServiceCmd() *cobra.Command {
 	cmd.AddCommand(newServiceListCmd())
 	cmd.AddCommand(newServiceAddCmd())
 	cmd.AddCommand(newServiceRemoveCmd())
+	cmd.AddCommand(newServiceExposeCmd())
 
 	return cmd
 }
@@ -387,6 +388,11 @@ func ensureServiceQuadlet(name string) error {
 	if err != nil {
 		return fmt.Errorf("unknown service %q", name)
 	}
+	if cfg, loadErr := config.LoadGlobal(); loadErr == nil {
+		if svcCfg, ok := cfg.Services[name]; ok && len(svcCfg.ExtraPorts) > 0 {
+			content = podman.ApplyExtraPorts(content, svcCfg.ExtraPorts)
+		}
+	}
 	if err := podman.WriteQuadlet(quadletName, content); err != nil {
 		return fmt.Errorf("writing quadlet for %s: %w", name, err)
 	}
@@ -406,6 +412,73 @@ func ensureCustomServiceQuadlet(svc *config.CustomService) error {
 		return fmt.Errorf("writing quadlet for %s: %w", svc.Name, err)
 	}
 	return podman.DaemonReload()
+}
+
+// newServiceExposeCmd returns the `service expose` command.
+func newServiceExposeCmd() *cobra.Command {
+	var remove bool
+	cmd := &cobra.Command{
+		Use:   "expose <service> <host:container>",
+		Short: "Add (or remove) an extra published port on a built-in service",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(_ *cobra.Command, args []string) error {
+			name, port := args[0], args[1]
+			if !isKnownService(name) {
+				return fmt.Errorf("%q is not a built-in service", name)
+			}
+			cfg, err := config.LoadGlobal()
+			if err != nil {
+				return err
+			}
+			svcCfg := cfg.Services[name]
+			if remove {
+				svcCfg.ExtraPorts = removePort(svcCfg.ExtraPorts, port)
+			} else {
+				if !containsPort(svcCfg.ExtraPorts, port) {
+					svcCfg.ExtraPorts = append(svcCfg.ExtraPorts, port)
+				}
+			}
+			cfg.Services[name] = svcCfg
+			if err := config.SaveGlobal(cfg); err != nil {
+				return err
+			}
+			if err := ensureServiceQuadlet(name); err != nil {
+				return err
+			}
+			status, _ := podman.UnitStatus("lerd-" + name)
+			if status == "active" {
+				fmt.Printf("Restarting lerd-%s to apply port changes...\n", name)
+				_ = podman.RestartUnit("lerd-" + name)
+			}
+			if remove {
+				fmt.Printf("Removed extra port %s from %s.\n", port, name)
+			} else {
+				fmt.Printf("Added extra port %s to %s.\n", port, name)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&remove, "remove", false, "Remove the port mapping instead of adding it")
+	return cmd
+}
+
+func containsPort(ports []string, port string) bool {
+	for _, p := range ports {
+		if p == port {
+			return true
+		}
+	}
+	return false
+}
+
+func removePort(ports []string, port string) []string {
+	out := ports[:0]
+	for _, p := range ports {
+		if p != port {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // printEnvVars prints the recommended .env variables for a service.

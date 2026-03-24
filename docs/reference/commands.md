@@ -83,6 +83,10 @@
 | `lerd service restart <name>` | Restart a service container |
 | `lerd service status <name>` | Show systemd unit status |
 | `lerd service list` | Show all services and their current state |
+| `lerd service expose <name> <host:container>` | Publish an extra port on a built-in service (persisted, auto-restarts if running) |
+| `lerd service expose <name> <host:container> --remove` | Remove a previously exposed port |
+| `lerd service add [file.yaml]` | Register a new custom service (from a YAML file or flags) |
+| `lerd service remove <name>` | Stop and remove a custom service |
 
 ## Database
 

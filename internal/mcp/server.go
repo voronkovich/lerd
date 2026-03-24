@@ -405,6 +405,28 @@ func toolList() []mcpTool {
 			},
 		},
 		{
+			Name:        "service_expose",
+			Description: "Add or remove an extra published port on a built-in lerd service (mysql, redis, etc.). The port mapping is persisted in the global config. The service is restarted automatically if running.",
+			InputSchema: mcpSchema{
+				Type: "object",
+				Properties: map[string]mcpProp{
+					"name": {
+						Type:        "string",
+						Description: "Built-in service name (mysql, redis, postgres, meilisearch, minio, mailpit)",
+					},
+					"port": {
+						Type:        "string",
+						Description: `Port mapping as "host:container", e.g. "13306:3306"`,
+					},
+					"remove": {
+						Type:        "boolean",
+						Description: "Set to true to remove the port mapping instead of adding it",
+					},
+				},
+				Required: []string{"name", "port"},
+			},
+		},
+		{
 			Name:        "service_env",
 			Description: "Return the recommended Laravel .env connection variables for a lerd service (built-in or custom). Use this to see what keys a service needs before calling env_setup or editing .env manually.",
 			InputSchema: mcpSchema{
@@ -916,6 +938,8 @@ func handleToolCall(params json.RawMessage) (any, *rpcError) {
 		return execServiceAdd(args)
 	case "service_remove":
 		return execServiceRemove(args)
+	case "service_expose":
+		return execServiceExpose(args)
 	case "env_setup":
 		return execEnvSetup(args)
 	case "site_link":
@@ -997,6 +1021,11 @@ func strSliceArg(args map[string]any, key string) []string {
 		}
 	}
 	return out
+}
+
+func boolArg(args map[string]any, key string) bool {
+	v, _ := args[key].(bool)
+	return v
 }
 
 func isKnownService(name string) bool {
@@ -1119,6 +1148,11 @@ func execServiceStart(args map[string]any) (any, *rpcError) {
 		content, err := podman.GetQuadletTemplate(unitName + ".container")
 		if err != nil {
 			return toolErr("no quadlet template for " + name + ": " + err.Error()), nil
+		}
+		if cfg, loadErr := config.LoadGlobal(); loadErr == nil {
+			if svcCfg, ok := cfg.Services[name]; ok && len(svcCfg.ExtraPorts) > 0 {
+				content = podman.ApplyExtraPorts(content, svcCfg.ExtraPorts)
+			}
 		}
 		if err := podman.WriteQuadlet(unitName, content); err != nil {
 			return toolErr("writing quadlet: " + err.Error()), nil
@@ -1738,6 +1772,77 @@ func execServiceRemove(args map[string]any) (any, *rpcError) {
 	}
 
 	return toolOK(fmt.Sprintf("Service %q removed. Persistent data was NOT deleted.", name)), nil
+}
+
+func execServiceExpose(args map[string]any) (any, *rpcError) {
+	name := strArg(args, "name")
+	port := strArg(args, "port")
+	if name == "" {
+		return toolErr("name is required"), nil
+	}
+	if port == "" {
+		return toolErr("port is required"), nil
+	}
+	if !isKnownService(name) {
+		return toolErr(name + " is not a built-in service"), nil
+	}
+	remove := boolArg(args, "remove")
+
+	cfg, err := config.LoadGlobal()
+	if err != nil {
+		return toolErr("loading config: " + err.Error()), nil
+	}
+	svcCfg := cfg.Services[name]
+	if remove {
+		filtered := svcCfg.ExtraPorts[:0]
+		for _, p := range svcCfg.ExtraPorts {
+			if p != port {
+				filtered = append(filtered, p)
+			}
+		}
+		svcCfg.ExtraPorts = filtered
+	} else {
+		found := false
+		for _, p := range svcCfg.ExtraPorts {
+			if p == port {
+				found = true
+				break
+			}
+		}
+		if !found {
+			svcCfg.ExtraPorts = append(svcCfg.ExtraPorts, port)
+		}
+	}
+	cfg.Services[name] = svcCfg
+	if err := config.SaveGlobal(cfg); err != nil {
+		return toolErr("saving config: " + err.Error()), nil
+	}
+
+	unitName := "lerd-" + name
+	content, err := podman.GetQuadletTemplate(unitName + ".container")
+	if err != nil {
+		return toolErr("quadlet template not found: " + err.Error()), nil
+	}
+	if len(svcCfg.ExtraPorts) > 0 {
+		content = podman.ApplyExtraPorts(content, svcCfg.ExtraPorts)
+	}
+	if err := podman.WriteQuadlet(unitName, content); err != nil {
+		return toolErr("writing quadlet: " + err.Error()), nil
+	}
+	if err := podman.DaemonReload(); err != nil {
+		return toolErr("daemon-reload: " + err.Error()), nil
+	}
+
+	status, _ := podman.UnitStatus(unitName)
+	if status == "active" {
+		_ = podman.RestartUnit(unitName)
+	}
+
+	action := "added to"
+	if remove {
+		action = "removed from"
+	}
+	return toolOK(fmt.Sprintf("Port %s %s %s.", port, action, name)), nil
 }
 
 func execServiceEnv(args map[string]any) (any, *rpcError) {

@@ -59,6 +59,7 @@ Once the MCP server is connected, your AI assistant has access to:
 | `service_stop` | Stop a built-in or custom service |
 | `service_add` | Register a new custom OCI-based service (MongoDB, RabbitMQ, …) |
 | `service_remove` | Stop and deregister a custom service |
+| `service_expose` | Add or remove an extra published port on a built-in service (persisted, auto-restarts if running) |
 | `service_env` | Return the recommended `.env` connection variables for a built-in or custom service |
 | `db_export` | Export a database to a SQL dump file (defaults to site DB from `.env`) |
 | `queue_start` | Start the queue worker for a site (any framework with a `queue` worker) |

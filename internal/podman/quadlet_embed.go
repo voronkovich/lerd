@@ -3,6 +3,7 @@ package podman
 import (
 	"embed"
 	"fmt"
+	"strings"
 )
 
 //go:embed quadlets
@@ -15,4 +16,14 @@ func GetQuadletTemplate(name string) (string, error) {
 		return "", fmt.Errorf("quadlet template %q not found: %w", name, err)
 	}
 	return string(data), nil
+}
+
+// ApplyExtraPorts appends extra PublishPort lines to quadlet content.
+func ApplyExtraPorts(content string, extraPorts []string) string {
+	var sb strings.Builder
+	sb.WriteString(content)
+	for _, p := range extraPorts {
+		fmt.Fprintf(&sb, "PublishPort=%s\n", p)
+	}
+	return sb.String()
 }

@@ -9,8 +9,35 @@
 | `lerd service restart <name>` | Restart a service container |
 | `lerd service status <name>` | Show systemd unit status |
 | `lerd service list` | Show all services and their current state |
+| `lerd service expose <name> <host:container>` | Publish an extra port on a built-in service |
+| `lerd service expose <name> <host:container> --remove` | Remove a previously exposed port |
 
 Available services: `mysql`, `redis`, `postgres`, `meilisearch`, `minio`, `mailpit`.
+
+### Exposing extra ports on built-in services
+
+Built-in services publish a fixed set of ports by default. Use `lerd service expose` to bind additional host ports without recompiling or replacing the service:
+
+```bash
+# Expose MySQL on an extra port (e.g. for a second GUI client using a different port)
+lerd service expose mysql 13306:3306
+
+# Remove the extra port
+lerd service expose mysql --remove 13306:3306
+```
+
+Extra port mappings are persisted in `~/.config/lerd/config.yaml` under `services.<name>.extra_ports` and are applied automatically every time the service starts. If the service is already running when you run `expose`, it is restarted immediately to apply the change.
+
+You can also edit `~/.config/lerd/config.yaml` directly:
+
+```yaml
+services:
+  mysql:
+    extra_ports:
+      - "13306:3306"
+```
+
+Then apply with `lerd service restart mysql`.
 
 ---
 
