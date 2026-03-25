@@ -141,6 +141,13 @@ func newServiceStartCmd() *cobra.Command {
 			_ = config.SetServicePaused(name, false)
 			_ = config.SetServiceManuallyStarted(name, true)
 
+			// Start any custom services that depend on this one.
+			for _, dep := range config.CustomServicesDependingOn(name) {
+				if err := ensureServiceRunning(dep); err != nil {
+					fmt.Printf("  [WARN] could not start dependent service %s: %v\n", dep, err)
+				}
+			}
+
 			printEnvVars(name)
 			return nil
 		},
@@ -154,11 +161,7 @@ func newServiceStopCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			name := args[0]
-			unit := "lerd-" + name
-			fmt.Printf("Stopping %s...\n", unit)
-			if err := podman.StopUnit(unit); err != nil {
-				return err
-			}
+			stopServiceAndDependents(name)
 			_ = config.SetServicePaused(name, true)
 			_ = config.SetServiceManuallyStarted(name, false)
 			return nil
@@ -210,19 +213,20 @@ func newServiceListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List all services and their status",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			fmt.Printf("%-20s %-10s %s\n", "Service", "Type", "Status")
-			fmt.Printf("%-20s %-10s %s\n", strings.Repeat("─", 20), strings.Repeat("─", 10), strings.Repeat("─", 10))
+			fmt.Printf("%-20s %s\n", "Service", "Status")
+			fmt.Printf("%s\n", strings.Repeat("─", 32))
 			for _, svc := range knownServices {
 				unit := "lerd-" + svc
 				status, err := podman.UnitStatus(unit)
 				if err != nil {
 					status = "unknown"
 				}
-				note := ""
+				fmt.Printf("%-20s %s\n", svc, colorStatus(status))
 				if status == "inactive" {
-					note = serviceInactiveReason(svc)
+					if reason := serviceInactiveReason(svc); reason != "" {
+						fmt.Printf("  %s\n", strings.TrimSpace(reason))
+					}
 				}
-				fmt.Printf("%-20s %-10s %s%s\n", svc, "[builtin]", colorStatus(status), note)
 			}
 			customs, _ := config.ListCustomServices()
 			for _, svc := range customs {
@@ -231,11 +235,15 @@ func newServiceListCmd() *cobra.Command {
 				if err != nil {
 					status = "unknown"
 				}
-				note := ""
+				fmt.Printf("%-20s %s  [custom]\n", svc.Name, colorStatus(status))
 				if status == "inactive" {
-					note = serviceInactiveReason(svc.Name)
+					if reason := serviceInactiveReason(svc.Name); reason != "" {
+						fmt.Printf("  %s\n", strings.TrimSpace(reason))
+					}
 				}
-				fmt.Printf("%-20s %-10s %s%s\n", svc.Name, "[custom]", colorStatus(status), note)
+				if len(svc.DependsOn) > 0 {
+					fmt.Printf("  depends on: %s\n", strings.Join(svc.DependsOn, ", "))
+				}
 			}
 			return nil
 		},
@@ -257,6 +265,7 @@ func newServiceAddCmd() *cobra.Command {
 		initExec        string
 		initContainer   string
 		dashboard       string
+		dependsOn       []string
 	)
 
 	cmd := &cobra.Command{
@@ -296,6 +305,7 @@ Or specify inline with flags (--name and --image are required):
 					EnvVars:     envVars,
 					Dashboard:   dashboard,
 					Description: description,
+					DependsOn:   dependsOn,
 				}
 				if len(containerEnv) > 0 {
 					svc.Environment = make(map[string]string, len(containerEnv))
@@ -348,6 +358,7 @@ Or specify inline with flags (--name and --image are required):
 	cmd.Flags().StringVar(&dashboard, "dashboard", "", "URL to open when clicking the dashboard button in the web UI")
 	cmd.Flags().StringVar(&initExec, "init-exec", "", "Shell command to run inside the container once per site (supports {{site}} and {{site_testing}})")
 	cmd.Flags().StringVar(&initContainer, "init-container", "", "Container to run --init-exec in (default: lerd-<name>)")
+	cmd.Flags().StringArrayVar(&dependsOn, "depends-on", nil, "Service name that must be running before this service (repeatable)")
 
 	return cmd
 }
@@ -555,6 +566,20 @@ func newServiceUnpinCmd() *cobra.Command {
 	}
 }
 
+// stopServiceAndDependents stops all custom services that depend on name
+// (depth-first), then stops name itself.
+func stopServiceAndDependents(name string) {
+	for _, dep := range config.CustomServicesDependingOn(name) {
+		stopServiceAndDependents(dep)
+	}
+	unit := "lerd-" + name
+	status, _ := podman.UnitStatus(unit)
+	if status == "active" || status == "activating" {
+		fmt.Printf("Stopping %s...\n", unit)
+		_ = podman.StopUnit(unit)
+	}
+}
+
 // autoStopUnusedServices stops any running service that has no active sites
 // referencing it and was not manually started by the user.
 func autoStopUnusedServices() {
@@ -570,7 +595,7 @@ func autoStopUnusedServices() {
 			unit := "lerd-" + name
 			status, _ := podman.UnitStatus(unit)
 			if status == "active" || status == "activating" {
-				_ = podman.StopUnit(unit)
+				stopServiceAndDependents(name)
 			}
 		}
 	}

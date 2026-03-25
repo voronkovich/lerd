@@ -154,6 +154,10 @@ dashboard: http://localhost:8081       # URL shown as an "Open" button in the we
 
 description: "MongoDB document store"  # shown in `lerd service list`
 
+# Service dependencies (see "Service dependencies" section below)
+depends_on:
+  - mysql                              # services that must start before this one
+
 # Injected into .env by `lerd env`
 env_vars:
   - MONGO_DATABASE={{site}}
@@ -221,20 +225,72 @@ If you stop a service with `lerd service stop` (or via the web UI), lerd records
 
 ### `lerd service list` output
 
-Custom services appear after built-in services with a `[custom]` type marker. Inactive services show a short reason explaining why:
+Services are shown in a two-column format optimised for narrow terminals. Custom services include a `[custom]` marker. Inactive reasons and dependency info appear as indented sub-lines:
 
 ```
-Service              Type       Status
-──────────────────── ────────── ──────────
-mysql                [builtin]  active
-redis                [builtin]  inactive   (no sites using this service)
-postgres             [builtin]  inactive   (start with: lerd service start postgres)
-...
-mongodb              [custom]   active
+Service              Status
+────────────────────────────────
+mysql                active
+redis                inactive
+  no sites using this service
+phpmyadmin           active  [custom]
+  depends on: mysql
 ```
 
 - **no sites using this service** — the service was auto-stopped because no active site's `.env` references it
-- **start with: lerd service start \<name\>** — the service was manually stopped or has never been started
+- **depends on: …** — the service has declared dependencies (see "Service dependencies" below)
+
+### Service dependencies
+
+Custom services can declare that they need another service to be running first using `depends_on`. Lerd uses this to automatically manage start and stop order.
+
+**Define via YAML:**
+
+```yaml
+# ~/.config/lerd/services/phpmyadmin.yaml
+name: phpmyadmin
+image: docker.io/phpmyadmin:latest
+ports:
+  - 8080:80
+depends_on:
+  - mysql
+dashboard: http://localhost:8080
+description: "phpMyAdmin web interface for MySQL"
+```
+
+**Define via flags:**
+
+```bash
+lerd service add \
+  --name phpmyadmin \
+  --image docker.io/phpmyadmin:latest \
+  --port 8080:80 \
+  --depends-on mysql \
+  --dashboard http://localhost:8080
+```
+
+**Behaviour:**
+
+| Action | Effect |
+|---|---|
+| `lerd service start phpmyadmin` | Starts `mysql` first (if not already running), then starts `phpmyadmin` |
+| `lerd service start mysql` | Starts `mysql`, then also starts any services that depend on it (e.g. `phpmyadmin`) |
+| `lerd service stop mysql` | Stops `phpmyadmin` first (cascade), then stops `mysql` |
+| Site pause (auto-stops `mysql`) | `phpmyadmin` is stopped first, then `mysql` |
+| Site unpause (starts `mysql`) | `mysql` starts, then `phpmyadmin` starts |
+
+Multiple dependencies are supported:
+
+```yaml
+depends_on:
+  - mysql
+  - redis
+```
+
+Dependencies can be built-in services (`mysql`, `redis`, `postgres`, `meilisearch`, `minio`, `mailpit`) or other custom services.
+
+!!! note
+    Circular dependencies (A depends on B, B depends on A) are not detected at definition time. The start cycle is naturally broken because a service already active is skipped. Avoid circular configurations.
 
 ### Example: Soketi (Pusher-compatible WebSocket server)
 
@@ -323,3 +379,4 @@ Point the Stripe PHP SDK at the mock in your `AppServiceProvider` or test bootst
 | `--init-container` | Container to run `--init-exec` in (default: `lerd-<name>`) |
 | `--dashboard` | URL to open when clicking the dashboard button in the web UI |
 | `--description` | Description shown in `lerd service list` |
+| `--depends-on` | Service name that must be running before this one — repeatable (`--depends-on mysql --depends-on redis`) |

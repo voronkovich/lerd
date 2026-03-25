@@ -457,6 +457,7 @@ type ServiceResponse struct {
 	Custom           bool              `json:"custom,omitempty"`
 	SiteCount        int               `json:"site_count"`
 	Pinned           bool              `json:"pinned"`
+	DependsOn        []string          `json:"depends_on,omitempty"`
 	QueueSite          string            `json:"queue_site,omitempty"`
 	StripeListenerSite string            `json:"stripe_listener_site,omitempty"`
 	ScheduleWorkerSite string            `json:"schedule_worker_site,omitempty"`
@@ -590,6 +591,7 @@ func handleServices(w http.ResponseWriter, _ *http.Request) {
 			Custom:    true,
 			SiteCount: countSitesUsingService(svc.Name),
 			Pinned:    config.ServiceIsPinned(svc.Name),
+			DependsOn: svc.DependsOn,
 		})
 	}
 	for _, siteName := range listActiveQueueWorkers() {

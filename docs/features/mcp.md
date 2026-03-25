@@ -55,9 +55,9 @@ Once the MCP server is connected, your AI assistant has access to:
 | `xdebug_on` | Enable Xdebug for a PHP version and restart the FPM container |
 | `xdebug_off` | Disable Xdebug for a PHP version |
 | `xdebug_status` | Show Xdebug enabled/disabled state for all PHP versions |
-| `service_start` | Start a built-in or custom service |
-| `service_stop` | Stop a built-in or custom service |
-| `service_add` | Register a new custom OCI-based service (MongoDB, RabbitMQ, …) |
+| `service_start` | Start a built-in or custom service; if the service has `depends_on`, dependencies start first and dependent services start after |
+| `service_stop` | Stop a built-in or custom service; cascade-stops any custom services that depend on it first |
+| `service_add` | Register a new custom OCI-based service (MongoDB, RabbitMQ, …); supports `depends_on` for service dependencies |
 | `service_remove` | Stop and deregister a custom service |
 | `service_expose` | Add or remove an extra published port on a built-in service (persisted, auto-restarts if running) |
 | `service_env` | Return the recommended `.env` connection variables for a built-in or custom service |
@@ -104,6 +104,13 @@ You: add a MongoDB service
 AI:  → service_add(name: "mongodb", image: "docker.io/library/mongo:7", ports: ["27017:27017"], data_dir: "/data/db")
      → service_start(name: "mongodb")
      ✓  mongodb started
+
+You: add phpMyAdmin, it needs MySQL to be running
+AI:  → service_add(name: "phpmyadmin", image: "docker.io/phpmyadmin:latest", ports: ["8080:80"], depends_on: ["mysql"], dashboard: "http://localhost:8080")
+     → service_start(name: "phpmyadmin")
+       # starts mysql first (dependency), then phpmyadmin
+     ✓  mysql started
+     ✓  phpmyadmin started
 
 You: what PHP and Node versions are installed?
 AI:  → runtime_versions()

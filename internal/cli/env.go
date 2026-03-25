@@ -391,8 +391,8 @@ func ensureServiceRunning(name string) error {
 	if status == "active" {
 		return nil
 	}
-	fmt.Printf("  Starting %s...\n", name)
 	if isKnownService(name) {
+		fmt.Printf("  Starting %s...\n", name)
 		if err := ensureServiceQuadlet(name); err != nil {
 			return err
 		}
@@ -401,6 +401,12 @@ func ensureServiceRunning(name string) error {
 		if err != nil {
 			return fmt.Errorf("custom service %q not found: %w", name, err)
 		}
+		for _, dep := range svc.DependsOn {
+			if err := ensureServiceRunning(dep); err != nil {
+				return fmt.Errorf("starting dependency %q for %q: %w", dep, name, err)
+			}
+		}
+		fmt.Printf("  Starting %s...\n", name)
 		if err := ensureCustomServiceQuadlet(svc); err != nil {
 			return err
 		}

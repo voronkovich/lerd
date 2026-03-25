@@ -11,6 +11,8 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Service dependencies (`depends_on`)** — custom services can now declare which services they depend on. Starting a service with dependencies starts those dependencies first; starting a dependency automatically starts any services that depend on it; stopping a dependency cascade-stops its dependents first. Declare via the `depends_on` YAML field, the `--depends-on` flag on `lerd service add`, or the `depends_on` parameter in the `service_add` MCP tool.
+
 - **`lerd man` — terminal documentation browser** — browse and search the built-in docs without leaving the terminal. Opens an interactive TUI with arrow-key navigation, live filtering by title or content, and a scrollable markdown pager. Pass a page name to jump directly (e.g. `lerd man sites`). Set `GLAMOUR_STYLE=light` to override the default dark theme. Works in non-TTY mode too: `lerd man | cat` prints a table of contents and `lerd man sites | cat` prints raw markdown.
 
 - **`lerd about`** — new command that prints the version, build info, project URL, and copyright.
@@ -40,6 +42,8 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Web UI: docs link** — a "Docs" link in the dashboard navbar opens the documentation site.
 
 ### Changed
+
+- **`lerd service list` uses a compact two-column format** — the `Type` column has been removed. Custom services show `[custom]` inline after their status. Inactive reason and `depends on:` info now appear as indented sub-lines, keeping the output narrow on small terminals.
 
 - **`lerd service list` / `lerd service status` shows inactive reason** — when a service is inactive, the output now includes a short note explaining why: `(no sites using this service)` for auto-stopped services, or `(start with: lerd service start <name>)` for manually stopped ones.
 

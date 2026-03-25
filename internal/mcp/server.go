@@ -386,6 +386,10 @@ func toolList() []mcpTool {
 						Type:        "string",
 						Description: "URL to open for this service's web dashboard (e.g. \"http://localhost:8080\")",
 					},
+					"depends_on": {
+						Type:        "array",
+						Description: `Services that must be running before this one starts, e.g. ["mysql"]. When this service starts its dependencies start first; when a dependency is stopped this service is stopped first.`,
+					},
 				},
 				Required: []string{"name", "image"},
 			},
@@ -1784,6 +1788,7 @@ func execServiceAdd(args map[string]any) (any, *rpcError) {
 		Description: strArg(args, "description"),
 		Dashboard:   strArg(args, "dashboard"),
 		DataDir:     strArg(args, "data_dir"),
+		DependsOn:   strSliceArg(args, "depends_on"),
 	}
 
 	if envList := strSliceArg(args, "environment"); len(envList) > 0 {

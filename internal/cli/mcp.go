@@ -263,6 +263,8 @@ After installing a version you can pin it to a project by writing a ` + bt + `.n
 ### ` + bt + `service_start` + bt + ` / ` + bt + `service_stop` + bt + `
 Start or stop any service — built-in or custom. ` + bt + `service_stop` + bt + ` marks the service as **paused** — ` + bt + `lerd start` + bt + ` and autostart on login will skip it until you explicitly start it again.
 
+**Dependency cascade:** if a custom service has ` + bt + `depends_on` + bt + ` set, starting its dependency also starts it; stopping the dependency stops it first. Starting the custom service directly ensures its dependencies start first.
+
 Built-in names: ` + bt + `mysql` + bt + `, ` + bt + `redis` + bt + `, ` + bt + `postgres` + bt + `, ` + bt + `meilisearch` + bt + `, ` + bt + `minio` + bt + `, ` + bt + `mailpit` + bt + `. Custom service names (registered with ` + bt + `service_add` + bt + `) are also accepted — just pass the same name used in ` + bt + `service_add` + bt + `.
 
 **.env values for built-in lerd services:**
@@ -300,6 +302,12 @@ Register or remove a custom OCI-based service. Arguments for ` + bt + `service_a
 - ` + bt + `data_dir` + bt + ` (optional): mount path inside container for persistent data
 - ` + bt + `description` + bt + ` (optional): human-readable description
 - ` + bt + `dashboard` + bt + ` (optional): URL for the service's web UI
+- ` + bt + `depends_on` + bt + ` (optional): array of service names that must be running before this service starts, e.g. ` + bt + `["mysql"]` + bt + `
+
+When ` + bt + `depends_on` + bt + ` is set:
+- Starting this service automatically starts its dependencies first
+- Starting a dependency automatically starts this service afterwards
+- Stopping a dependency automatically stops this service first (cascade stop)
 
 Example — add MongoDB:
 ` + "```" + `
@@ -311,6 +319,18 @@ service_add(
   env_vars: ["MONGODB_URL=mongodb://lerd-mongodb:27017"]
 )
 service_start(name: "mongodb")
+` + "```" + `
+
+Example — add phpMyAdmin depending on MySQL:
+` + "```" + `
+service_add(
+  name: "phpmyadmin",
+  image: "docker.io/phpmyadmin:latest",
+  ports: ["8080:80"],
+  depends_on: ["mysql"],
+  dashboard: "http://localhost:8080"
+)
+service_start(name: "phpmyadmin")   // starts mysql first, then phpmyadmin
 ` + "```" + `
 
 ` + bt + `service_remove` + bt + ` stops and deregisters a custom service. Persistent data is NOT deleted.
@@ -624,7 +644,7 @@ This project runs on **lerd**, a Podman-based Laravel development environment. T
 | ` + bt + `xdebug_status` + bt + ` | Show Xdebug state for all PHP versions |
 | ` + bt + `service_start` + bt + ` | Start a built-in or custom service |
 | ` + bt + `service_stop` + bt + ` | Stop a service |
-| ` + bt + `service_add` + bt + ` | Register a new custom OCI service (MongoDB, RabbitMQ, …) |
+| ` + bt + `service_add` + bt + ` | Register a new custom OCI service (MongoDB, RabbitMQ, …); supports ` + bt + `depends_on` + bt + ` for service dependencies |
 | ` + bt + `service_remove` + bt + ` | Stop and deregister a custom service |
 | ` + bt + `service_expose` + bt + ` | Add or remove an extra published port on a built-in service (persisted) |
 | ` + bt + `service_env` + bt + ` | Return the recommended ` + bt + `.env` + bt + ` connection variables for a service |
@@ -663,4 +683,5 @@ This project runs on **lerd**, a Podman-based Laravel development environment. T
 - Worker unit names follow the pattern ` + bt + `lerd-<worker>-<site>` + bt + ` (e.g. ` + bt + `lerd-messenger-myapp` + bt + `)
 - ` + bt + `site_pause` + bt + ` / ` + bt + `site_unpause` + bt + ` free up resources for sites not in active use without unlinking them; paused state persists across restarts
 - ` + bt + `service_pin` + bt + ` keeps a service always running regardless of which sites are active; use for shared services like MySQL or Redis
+- ` + bt + `service_add` + bt + ` supports ` + bt + `depends_on` + bt + ` (array of service names): starting a dependency auto-starts the dependent service; stopping a dependency cascade-stops the dependent first; starting the dependent ensures dependencies start first
 `

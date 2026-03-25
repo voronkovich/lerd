@@ -42,6 +42,26 @@ type CustomService struct {
 	SiteInit    *SiteInit         `yaml:"site_init,omitempty"`
 	Dashboard   string            `yaml:"dashboard,omitempty"`
 	Description string            `yaml:"description,omitempty"`
+	DependsOn   []string          `yaml:"depends_on,omitempty"`
+}
+
+// CustomServicesDependingOn returns the names of all custom services that
+// declare name in their depends_on list.
+func CustomServicesDependingOn(name string) []string {
+	customs, err := ListCustomServices()
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, svc := range customs {
+		for _, dep := range svc.DependsOn {
+			if dep == name {
+				out = append(out, svc.Name)
+				break
+			}
+		}
+	}
+	return out
 }
 
 // LoadCustomService loads a custom service by name from the services directory.
