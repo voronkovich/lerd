@@ -1,5 +1,5 @@
 site_name: Lerd
-site_description: Laravel Herd for Linux — Podman-native local development
+site_description: A Herd-like local PHP development environment for Linux — Podman-native, rootless
 site_url: https://geodro.github.io/lerd/
 repo_url: https://github.com/geodro/lerd
 repo_name: geodro/lerd
