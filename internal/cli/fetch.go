@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/geodro/lerd/internal/php"
 	"github.com/geodro/lerd/internal/podman"
 	"github.com/spf13/cobra"
 )
-
-// SupportedPHPVersions lists the PHP versions lerd can build FPM images for.
-var SupportedPHPVersions = []string{"8.1", "8.2", "8.3", "8.4", "8.5"}
 
 // NewFetchCmd returns the fetch command.
 func NewFetchCmd() *cobra.Command {
@@ -24,7 +22,7 @@ func NewFetchCmd() *cobra.Command {
 func runFetch(_ *cobra.Command, args []string) error {
 	versions := args
 	if len(versions) == 0 {
-		versions = SupportedPHPVersions
+		versions = php.SupportedVersions
 	}
 
 	jobs := make([]BuildJob, len(versions))

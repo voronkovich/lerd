@@ -8,6 +8,9 @@ import (
 	"github.com/geodro/lerd/internal/config"
 )
 
+// SupportedVersions lists the PHP versions that lerd supports.
+var SupportedVersions = []string{"8.1", "8.2", "8.3", "8.4", "8.5"}
+
 var fpmQuadletRe = regexp.MustCompile(`^lerd-php(\d)(\d+)-fpm\.container$`)
 
 // ListInstalled returns all PHP versions that have an FPM quadlet file,

@@ -2,11 +2,12 @@ package php
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/geodro/lerd/internal/config"
 	"gopkg.in/yaml.v3"
 )
@@ -48,7 +49,7 @@ func DetectVersion(dir string) (string, error) {
 			PHPVersion string `yaml:"php_version"`
 		}
 		if yaml.Unmarshal(data, &lerdCfg) == nil && lerdCfg.PHPVersion != "" {
-			return lerdCfg.PHPVersion, nil
+			return bestSupportedVersion("=" + lerdCfg.PHPVersion)
 		}
 	}
 
@@ -57,7 +58,7 @@ func DetectVersion(dir string) (string, error) {
 	if data, err := os.ReadFile(phpVersionFile); err == nil {
 		v := strings.TrimSpace(string(data))
 		if v != "" {
-			return v, nil
+			return bestSupportedVersion("=" + v)
 		}
 	}
 
@@ -69,29 +70,45 @@ func DetectVersion(dir string) (string, error) {
 		}
 		if json.Unmarshal(data, &composer) == nil {
 			if phpConstraint, ok := composer.Require["php"]; ok {
-				if v := parseComposerPHP(phpConstraint); v != "" {
-					return v, nil
-				}
+				return bestSupportedVersion(phpConstraint)
 			}
 		}
 	}
 
 	// 4. global config default
 	cfg, err := config.LoadGlobal()
-	if err != nil {
-		return "8.4", nil
+	if err == nil && cfg.PHP.DefaultVersion != "" {
+        return bestSupportedVersion("=" + cfg.PHP.DefaultVersion)
 	}
-	return cfg.PHP.DefaultVersion, nil
+
+    // Return the latest supported version
+    return bestSupportedVersion("*")
 }
 
-// parseComposerPHP extracts a simple major.minor version from a composer PHP constraint.
-// e.g. "^8.2" → "8.2", ">=8.1" → "8.1", "~8.3.0" → "8.3"
-func parseComposerPHP(constraint string) string {
-	// Strip operators and whitespace
-	re := regexp.MustCompile(`(\d+\.\d+)`)
-	matches := re.FindStringSubmatch(constraint)
-	if len(matches) > 1 {
-		return matches[1]
+// bestSupportedVersion finds the highest supported PHP version that satisfies the given constraint.
+// Returns an error if the constraint is invalid or no supported version matches.
+func bestSupportedVersion(constraintStr string) (string, error) {
+	constraint, err := semver.NewConstraint(constraintStr)
+	if err != nil {
+		return "", fmt.Errorf("invalid PHP version constraint '%s': %w", constraintStr, err)
 	}
-	return ""
+
+	var bestVersion *semver.Version
+	for _, v := range SupportedVersions {
+		version, err := semver.NewVersion(v)
+		if err != nil {
+			continue // skip invalid versions in list
+		}
+		if constraint.Check(version) {
+			if bestVersion == nil || version.GreaterThan(bestVersion) {
+				bestVersion = version
+			}
+		}
+	}
+
+	if bestVersion == nil {
+        return "", fmt.Errorf("no supported PHP version satisfies constraint '%s'", constraintStr)
+	}
+
+    return bestVersion.String(), nil
 }
