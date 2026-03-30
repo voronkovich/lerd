@@ -122,7 +122,7 @@ func runInstall(_ *cobra.Command, _ []string) error {
 				}
 				sslConf := filepath.Join(config.NginxConfD(), site.Domain+"-ssl.conf")
 				mainConf := filepath.Join(config.NginxConfD(), site.Domain+".conf")
-				os.Remove(mainConf) //nolint:errcheck
+				os.Remove(mainConf)          //nolint:errcheck
 				os.Rename(sslConf, mainConf) //nolint:errcheck
 			} else {
 				if err := nginx.GenerateVhost(site, phpVer); err != nil {
@@ -281,7 +281,7 @@ func runInstall(_ *cobra.Command, _ []string) error {
 	ok()
 
 	fmt.Println("\nLerd installation complete!")
-	fmt.Println("\n  Dashboard: \033[96mhttp://127.0.0.1:7073\033[0m")
+	fmt.Println("\n  Dashboard: \033[96mhttp://lerd.localhost\033[0m")
 	return nil
 }
 
@@ -320,7 +320,6 @@ func ensureUnprivilegedPorts() error {
 	fmt.Println("OK")
 	return nil
 }
-
 
 func downloadBinaries(w io.Writer) error {
 	arch := runtime.GOARCH
@@ -448,7 +447,6 @@ func (p *progressReader) Read(b []byte) (int, error) {
 	return n, err
 }
 
-
 func addShellShims() error {
 	home, _ := os.UserHomeDir()
 	binDir := config.BinDir()
@@ -508,11 +506,11 @@ fi
 		if err := appendShellRC(filepath.Join(home, ".zshrc"), binDir); err != nil {
 			return err
 		}
-		zfuncDir := filepath.Join(home, ".zfunc")
-		if err := os.MkdirAll(zfuncDir, 0755); err == nil {
-			installCompletion(lerdBin, "zsh", zfuncDir, "_lerd")
+		zshFunctionsDir := filepath.Join(home, ".local", "share", "zsh", "site-functions")
+		if err := os.MkdirAll(zshFunctionsDir, 0755); err == nil {
+			installCompletion(lerdBin, "zsh", zshFunctionsDir, "_lerd")
 			appendShellRC(filepath.Join(home, ".zshrc"), "") // ensure fpath line exists
-			ensureZshFpath(filepath.Join(home, ".zshrc"), zfuncDir)
+			ensureZshFpath(filepath.Join(home, ".zshrc"), zshFunctionsDir)
 		}
 		return nil
 	default:

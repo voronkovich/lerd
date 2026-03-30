@@ -7,6 +7,53 @@ Lerd uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.1.2] — 2026-03-30
+
+### Fixed
+
+- **`lerd install` no longer hangs after "Adding shell PATH configuration"** — the interactive MCP registration prompt has been removed. Run `lerd mcp:enable-global` manually after install to register the MCP server.
+- **Dashboard URL in install completion message** — now shows `http://lerd.localhost` instead of the raw `http://127.0.0.1:7073` address.
+
+---
+
+## [1.1.1] — 2026-03-30
+
+### Added
+
+- **CI badge on README** — the README now shows a live CI status badge linked to the `ci.yml` workflow.
+
+### Fixed
+
+- **MCP registration prompt unresponsive when installing via pipe** — `lerd install` reads the "Register lerd MCP globally?" prompt answer from `/dev/tty` instead of stdin. When the installer is run via a pipe (`curl ... | sh`), stdin is the pipe and `fmt.Scan` returns immediately with no input; opening `/dev/tty` directly reads from the actual terminal regardless of how the process was started.
+
+### Internal
+
+- **Release workflow now gates on CI** — the `release.yml` workflow runs build, test, vet, and format checks before invoking GoReleaser. A tag push on a broken commit will now fail before any artifacts are published.
+
+---
+
+## [1.1.0] — 2026-03-30
+
+### Added
+
+- **`lerd new <name-or-path>`** — scaffold a new PHP project using the framework's `create` command. Defaults to Laravel (`composer create-project laravel/laravel`). Pass `--framework=<name>` to use any framework that defines a `create` field. Extra args can be forwarded to the scaffold command after `--`. The `project_new` MCP tool provides the same functionality for AI assistants.
+- **`create` field in framework definitions** — framework YAML files now support a `create` property (e.g. `create: composer create-project symfony/skeleton`). The target directory is appended automatically by `lerd new`. The `--create` flag was also added to `lerd framework add`.
+- **`project_new` MCP tool** — scaffold a new project from an AI assistant session. Accepts `path` (required), `framework` (default: `laravel`), and `args` (extra scaffold flags). Follow with `site_link` and `env_setup` to register and configure the new site.
+- **`lerd mcp:enable-global`** — registers the lerd MCP server at Claude Code user scope (and Windsurf / JetBrains Junie global configs) so lerd tools are available in every AI session without per-project configuration. During `lerd install`, if Claude Code is detected and lerd is not yet registered, the installer prompts to run this automatically.
+- **`site_php` MCP tool** — change the PHP version for a registered site from your AI assistant. Writes `.php-version`, updates the site registry, regenerates the nginx vhost, and reloads nginx in one call. The target FPM container must be running.
+- **`site_node` MCP tool** — change the Node.js version for a registered site. Writes `.node-version` and installs the version via fnm if not already present.
+- **CWD fallback for MCP path resolution** — the MCP server now falls back to the working directory Claude was opened in when `LERD_SITE_PATH` is not set. This means `path` can be omitted from `artisan`, `composer`, `env_setup`, `site_link`, `db_export`, and other tools when running in a global MCP session — just open Claude in the project directory.
+
+### Fixed
+
+- **`lerd setup` npm step fails without a lockfile** — the npm install step now runs `npm ci` when `package-lock.json` or `yarn.lock` is present, and falls back to `npm install` otherwise. Previously `npm ci` was always used, causing the step to fail on projects without a lockfile. (PR [#5](https://github.com/geodro/lerd/pull/5) by @voronkovich)
+- **Duplicate `PATH` entry on `lerd install`** — `add_to_path` in `install.sh` now checks the live `$PATH` before modifying shell rc files. If the install directory is already present, the function returns early and skips rc modification. (PR [#7](https://github.com/geodro/lerd/pull/7) by @voronkovich)
+- **zsh completions moved to XDG directory** — zsh completions are written to `~/.local/share/zsh/site-functions/_lerd` instead of `~/.zfunc/_lerd`, aligning with the XDG base directory convention. (PR [#8](https://github.com/geodro/lerd/pull/8) by @voronkovich)
+- **`.php-version` changes not reflected in nginx** — writing a `.php-version` file (via `lerd isolate` or directly) updated the queue worker but left the nginx vhost pointing at the old FPM socket. The watcher daemon now detects when the resolved PHP version changes, updates the site registry, regenerates the vhost, and reloads nginx automatically (debounced to 2 seconds).
+- **PHP version resolution order** — `.php-version` now takes priority over `composer.json`'s `require.php` constraint, matching the documented and intuitive precedence (explicit pin beats inferred constraint).
+
+---
+
 ## [1.0.4] — 2026-03-26
 
 ### Fixed
